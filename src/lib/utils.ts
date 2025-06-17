@@ -1,6 +1,5 @@
 import { wasm_functions as W } from '../main.js';
 import * as R from 'ramda'
-type num2 = [number, number]
 type R<T> = Record<string, T>
 
 export const HilbertForward = (p: BigInt, b: number, d: number) => W.forward(p.toString(), b, d)
@@ -56,8 +55,6 @@ export function assignDefaultName(arr: string[]): string {
 
 export const printX = x => console.log('x is ' + x);
 
-let galois_pullBack = (adj) => (f) => (x) => adj[1](f(adj[0](x)))
-
 /**  Apply the function F to each deepest value of an object X */
 export const deepMap = R.curry((F, X) => R.mapObjIndexed(
   (v, key) => R.or(R.is(Array, v), R.is(Object, v)) ? deepMap(F, v) : F(v),
@@ -79,7 +76,7 @@ export const mergePartialWith = R.curry((f: any, A: object, B: object) => R.merg
  * @param targetRange A tuple of the minimum and maximum values of the target range
  * @returns A function that takes an object and returns the interpolated value
  */
-function lerpView(valField: string, sourceRangeGetter: (obj: R<number>) => num2, targetRange: num2) {
+function lerpView(valField: string, sourceRangeGetter: (obj: R<number>) => [number, number], targetRange: [number, number]) {
   return function (obj: R<number>) {
     return lerp(...sourceRangeGetter(obj), ...targetRange, obj[valField])
   }
@@ -92,7 +89,7 @@ function lerpView(valField: string, sourceRangeGetter: (obj: R<number>) => num2,
  * @param sourceRange A tuple of the minimum and maximum values of the source range
  * @returns A function that takes a value and an object, and returns the object with the field set to the interpolated value
  */
-function lerpSet(valField: string, targetRangeGetter: (obj: R<number>) => num2, sourceRange: num2) {
+function lerpSet(valField: string, targetRangeGetter: (obj: R<number>) => [number, number], sourceRange: [number, number]) {
   return function (val: number, obj: R<number>) {
     return R.assoc(valField, lerp(...sourceRange, ...targetRangeGetter(obj), val), obj)
   }
@@ -105,7 +102,7 @@ function lerpSet(valField: string, targetRangeGetter: (obj: R<number>) => num2, 
  * @param otherRange A tuple of the minimum and maximum values of the target range
  * @returns A Ramda lens that can be used with Ramda's lens functions to get and set the interpolated value
  */
-export function lerpLens(valField: string, rangeGetter: (obj: R<number>) => num2, otherRange: num2) {
+export function lerpLens(valField: string, rangeGetter: (obj: R<number>) => [number, number], otherRange: [number, number]) {
   return R.lens(lerpView(valField, rangeGetter, otherRange), lerpSet(valField, rangeGetter, otherRange));
 }
 

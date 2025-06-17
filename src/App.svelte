@@ -5,8 +5,8 @@
   import { MuesliStore } from './lib/storesFactories';
   import { examples } from './lib/data';
   import * as U from './lib/utils';
-  import * as S from './lib/utils-streams';
   import * as R from 'ramda';
+  import * as S from './lib/utils-streams';
   import HydraViewer from './components/HydraViewer.svelte';
   import ICursor from './components/ICursor.svelte';
   import ILever from './components/ILever.svelte';
@@ -19,7 +19,7 @@
 
   const random = new RandomGenerator({
     seed: BigInt(123456789), // accepts any positive integer
-    limit: BigInt(10) ** BigInt(64), // for example, 64 digits maximum
+    limit: BigInt(10) ** BigInt(64), // 64 digits maximum
   });
 
   /** Initialize a store containing the example presets*/
@@ -174,7 +174,6 @@
   }
 
   function wheel_effect(ev) {
-    console.log(ev);
     /** Retrieve all elements located "beneath" the pointer */
     let targetList = document
       .elementsFromPoint(ev.x, ev.y)
@@ -184,32 +183,13 @@
     const [targetKey, field] = U.stringToPath(target?.dataset?.path ?? '');
     console.log(targetKey)
     let curr = R.clamp(-1, 1, U.lerp(0, ih, 1e-6, 1, -ev.wheelDeltaY));
-    // console.log(curr);
-    // InputSpace.evolve(R.map(R.always(R.objOf('z', (x) => x + curr * x)), $InputSpace));
-
-
- 
-    // InputSpace.evolve(
-    //   R.mapObjIndexed(
-    //     (value,key,obj)=>U.deepObjOf([key,"z"], x => x + curr * (obj.c1 - obj.c0)),
-    //     $InputSpace
-    //   )
-    // )
   
     InputSpace.evolve(
       R.map(
-        val=>R.objOf("z", x => x + R.tap(U.printX, curr * (val.c1 - val.c0))),
+        val=>R.objOf("z", x => x + curr * (val.c1 - val.c0)),
         R.pickBy((val,key)=>key===targetKey,$InputSpace)
       )
     )
-
-    // InputSpace.evolve(
-    //   U.deepObjOf([key, "z"], (x) => x => x + curr * ($InputSpace[key].c1 - $InputSpace[key].c0))
-    // );
-    // console.log(R.mapObjIndexed(
-    //     (value,key,obj)=>U.deepObjOf([key,"z"], x => x + curr * (obj.c1 - obj.c0)),
-    //     $InputSpace
-    //   ))
     WheelDeltaY.set(curr);
 
   }
@@ -220,9 +200,8 @@
 
   onMount(() => {
     S.mousemove_.thru(S.obs(feedback));
-    //S.mousedown_.thru(S.obs(feedback));
-    //S.drag_.thru(S.obs(feedback));
-    //S.asr(S.capture($DeltaZoom, S.shiftdown_), S.mousewheel_, S.shiftup_).thru(S.obs(wheel_effect));
+
+
     trackOffsetX = document.getElementsByClassName('track')[0].getBoundingClientRect().left;
   });
 </script>
