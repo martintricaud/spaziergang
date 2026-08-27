@@ -119,7 +119,7 @@
       .elementsFromPoint(ev.detail.x, ev.detail.y)
       .find((x) => x.tagName == 'LABEL');
     if (label) {
-      erase_target(Number(label.getAttribute('value')));
+      erase_target(Number(label.getAttribute('data-index')));
     }
   }
 
@@ -180,15 +180,15 @@
 
 <svelte:window
   bind:innerHeight={ih}
-  on:keydown={(ev) => UIOptions.update(R.assoc('noscroll', ev.altKey))}
-  on:keyup={(ev) => UIOptions.update(R.assoc('noscroll', ev.altKey))}
   on:keydown={(ev) => {
+    UIOptions.update(R.assoc('noscroll', ev.altKey));
     hidden = ev.key == ' ' ? true : hidden && true;
     /** No choice but to blur some DOM elements to avoid triggering default DOM handlers. */
     document.getElementById('select-ui').blur();
     document.getElementById('select-template').blur();
   }}
   on:keyup={(ev) => {
+    UIOptions.update(R.assoc('noscroll', ev.altKey));
     hidden = ev.key == ' ' ? false : hidden || false;
     document.getElementById('save').blur();
   }}
@@ -209,7 +209,11 @@
   <div class="snapshots">
     <button id="save" data-path="" on:click={() => save_handler()}><u>save</u></button>
     {#each $Templates as { templateName, presetName, synth, inputSpace, h_global, h_local }, i}
-      <label class:hidden={templateName != SelectedTemplate} class="erasable canvas {ff}" value={i}>
+      <label
+        class:hidden={templateName != SelectedTemplate}
+        class="erasable canvas {ff}"
+        data-index={i}
+      >
         <input type="radio" bind:group={SelectedExample} value={i} />
         <span>{presetName}</span>
         <HydraViewer
@@ -235,7 +239,7 @@
               data-path="h b"
               data-test
               style="left:{rescale($H_global, $Bits, $Unlocked.length) * track_w - 3}px"
-            />
+            ></div>
           </div>
           <div>max</div>
         </li>
@@ -248,7 +252,7 @@
               data-path="h a"
               class="unlocked thumb"
               style="left:{rescale($H_local, $Bits, $Unlocked.length) * track_w - 3}px"
-            />
+            ></div>
           </div>
           <div>max</div>
         </li>
@@ -271,15 +275,15 @@
               class="range"
               style="width:{(track_w * z) / (c1 - c0)}px; 
               left:{(track_w * (b - z / 2 - c0)) / (c1 - c0)}px;"
-            />
-            <div class="middle" style="width:{2}px; left:{U.scale(c0, c1, 0, track_w, b)}px;" />
+            ></div>
+            <div class="middle" style="width:{2}px; left:{U.scale(c0, c1, 0, track_w, b)}px;"></div>
             <div
               data-store="2"
               data-path="{key} a"
               class:unlocked={!locked}
               class="thumb"
               style="left: calc({(100 * (a - c0)) / (c1 - c0)}% - 5px)"
-            />
+            ></div>
           </div>
           <div data-store="2" data-path="{key} c1" class:unlocked={!locked} class="bound c1">
             {c1}
@@ -298,9 +302,16 @@
     />
   </div>
   <div style="width: 100vw; background: none; position: absolute; z-index: 1000; top:0; left:0">
-    <div class:hidden={!hidden} class="palette" style="left:{$palette.x}px; top:{$palette.y}px;">
+    <div
+      class:hidden={!hidden}
+      class="palette"
+      role="menu"
+      style="left:{$palette.x}px; top:{$palette.y}px;"
+    >
       {#each Object.entries(instruments) as [name, { equipped }]}
-        <div class:equipped on:mouseenter={() => equip_effect(name)}>{name}</div>
+        <div class:equipped role="menuitem" tabindex="-1" on:mouseenter={() => equip_effect(name)}>
+          {name}
+        </div>
       {/each}
     </div>
     {#each Object.entries(instruments) as [name, { equipped, component, ev, effect }]}

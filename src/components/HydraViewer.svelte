@@ -45,4 +45,4 @@
     bind:this={hydracanvas}
     width={w}
     height={h}
-/>
+></canvas>

@@ -93,12 +93,12 @@
     class:inactive={!equipped}
     class="round green"
     style="left:{$P2.x}px; top:{$P2.y}px; position:fixed; "
-/>
+></div>
 <div
     class:inactive={!equipped}
     class="round blue"
     style="left:{$P3.x}px; top:{$P3.y}px; position:fixed;  "
-/>
+></div>
 
 <style>
     .round:after {
