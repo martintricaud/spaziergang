@@ -5,10 +5,6 @@ type R<T> = Record<string, T>
 export const HilbertForward = (p: BigInt, b: number, d: number) => W.forward(p.toString(), b, d)
 export const HilbertInverse = (X: Uint32Array, b: number) => BigInt(W.inverse(X, b))
 
-export function ratio(a, b, precision):number{
-  return Number(a * BigInt(precision) / b) / precision
-}
-
 /** Makes multiplication polymorphic over bigint and numbers */
 export function prod(a,b,precision){
   if(typeof a === typeof b){
@@ -21,8 +17,6 @@ export function prod(a,b,precision){
   }
 }
 
-export const reorder = R.sort((a: any, b) => a - b)
-export const zoom = p => ([m, M]) => [m + Math.min(0.5, p / 2) * (M - m), M - Math.min(0.5, p / 2) * (M - m)]
 export const scale = (a, A, b, B, x, precision = 9) => prod((x - a) / (A - a), B - b, precision);
 export const lerp = R.curry((a, A, b, B, x, f = R.identity) => scale(a, A, b, B, f(x)) + b)
 
@@ -41,9 +35,9 @@ export const lerp = R.curry((a, A, b, B, x, f = R.identity) => scale(a, A, b, B,
 export function assignDefaultName(arr: string[]): string {
   // Extract integer suffixes from preset names in array
   const suffixes = arr
-    .filter(str => str.includes("preset"))
-    .map(str => parseInt(R.last(str), 10))
-    .filter(num => Number.isInteger(num));
+    .map(str => str.match(/^preset(\d+)$/))
+    .filter(match => match !== null)
+    .map(match => parseInt(match[1], 10));
   // Find the lowest available integer suffix greater than or equal to 1
   let suffix = 1;
   while (suffixes.includes(suffix)) {
@@ -52,8 +46,6 @@ export function assignDefaultName(arr: string[]): string {
   // Return the default preset name with the chosen suffix
   return "preset" + suffix;
 }
-
-export const printX = x => console.log('x is ' + x);
 
 /**  Apply the function F to each deepest value of an object X */
 export const deepMap = R.curry((F, X) => R.mapObjIndexed(
@@ -106,13 +98,13 @@ export function lerpLens(valField: string, rangeGetter: (obj: R<number>) => [num
   return R.lens(lerpView(valField, rangeGetter, otherRange), lerpSet(valField, rangeGetter, otherRange));
 }
 
+/** Splits a space-separated path such as "key 0" into its segments, converting numeric segments to numbers; an empty or undefined path gives an empty array. */
 export function stringToPath(s: string | undefined): Array<string | number> {
-  return R.isEmpty(R.split(' ', s)) ? [] : R.map((x: any) => isNaN(x) ? x : Number(x), R.split(' ', s))
+  return s ? R.map((x: any) => isNaN(x) ? x : Number(x), R.split(' ', s)) : []
 }
 
 
-/** Utilities for piping and composing evolvers */
-export const composeEvolver = (evolver1, evolver2) => R.mergeWith((f, g) => R.compose(f, g), evolver1, evolver2)
+/** Utility for piping evolvers */
 export const pipeEvolver = (evolver1, evolver2) => R.mergeWith((f, g) => R.pipe(f, g), evolver1, evolver2)
 
 export function evolve(transformations, object) {

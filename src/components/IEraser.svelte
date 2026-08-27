@@ -8,7 +8,6 @@
 
 <svelte:window 
     on:mousedown={(e) => {
-        if(equipped){console.log("test")}
         equipped ? dispatch('effect', dispatchDetails):e
     }
     }

@@ -1,26 +1,17 @@
 <script>
-  import { writable, get, derived } from 'svelte/store';
+  import { writable, derived } from 'svelte/store';
   import { onMount } from 'svelte';
   import { wasm_functions as W } from './main.js';
   import { MuesliStore } from './lib/storesFactories';
   import { examples } from './lib/data';
   import * as U from './lib/utils';
   import * as R from 'ramda';
-  import * as S from './lib/utils-streams';
   import HydraViewer from './components/HydraViewer.svelte';
-  import ICursor from './components/ICursor.svelte';
   import ILever from './components/ILever.svelte';
   import IFix from './components/IFix.svelte';
   import IEraser from './components/IEraser.svelte';
   import IZoom from './components/IZoom.svelte';
   import { EventStore, UIOptions } from './lib/UIState';
-  import { RandomGenerator } from '@japan-d2/random-bigint';
-  import { constraintsPreset } from './lib/constraints';
-
-  const random = new RandomGenerator({
-    seed: BigInt(123456789), // accepts any positive integer
-    limit: BigInt(10) ** BigInt(64), // 64 digits maximum
-  });
 
   /** Initialize a store containing the example presets*/
   const Templates = writable(examples);
@@ -30,25 +21,18 @@
   /** By default, the selected example is the first that matches the selected template's name*/
   let SelectedExample = R.findIndex(R.propEq('templateName', SelectedTemplate), $Templates);
 
-  let ih,
-    iw,
-    macro_w,
-    track_w,
-    range_w,
-    trackOffsetX,
-    hidden,
-    SelectedUI,
-    thumb_w = 6;
+  let ih, track_w, trackOffsetX, hidden, SelectedUI;
 
   const palette = writable({ x: 0, y: 0 });
 
   let instruments = {
+    /** The plain cursor has no component and no effect. */
     cursor: {
       name: 'none',
       equipped: true,
-      component: ICursor,
+      component: null,
       ff: 'willNone',
-      effect: cursor_effect,
+      effect: () => {},
     },
     fix: {
       name: 'fix',
@@ -85,19 +69,11 @@
   /** reactive value that returns the feedforward style for the selected instrument */
   $: ff = instruments[equipped].ff;
 
-  //DeltaZoom is the zoom factor
-  const DeltaZoom = writable(1);
-  const WheelDeltaY = writable(1);
   $: [H_global, H_local, InputSpace, Bits, Unlocked, Inputs, MaxH] = MuesliStore(
     $Templates[SelectedExample]
   );
-  $: data = R.toPairs($InputSpace);
 
   /** EFFECTFUL FUNCTIONS modify reactive values, can be thought of has handlers */
-
-  function cursor_effect(ev) {
-    console.log(ev);
-  }
 
   function fix_effect(ev) {
     let e = ev?.detail;
@@ -138,12 +114,13 @@
     }
   }
   function erase_effect(ev) {
-    /** get the target of the eraser from the dom*/
-    let target = document
+    /** The target of the eraser is the preset label under the pointer, if any. */
+    const label = document
       .elementsFromPoint(ev.detail.x, ev.detail.y)
-      .filter((x) => x.tagName == 'LABEL')[0]
-      .getAttribute('value');
-    erase_target(target);
+      .find((x) => x.tagName == 'LABEL');
+    if (label) {
+      erase_target(Number(label.getAttribute('value')));
+    }
   }
 
   /** HANDLERS
@@ -179,36 +156,30 @@
       .elementsFromPoint(ev.x, ev.y)
       .filter((x) => x.hasAttribute("data-path"));
     /** Consider the target of the effect to be the top-most element */
-    let target = targetList[0]??""
+    const target = targetList[0];
     const [targetKey, field] = U.stringToPath(target?.dataset?.path ?? '');
-    console.log(targetKey)
-    let curr = R.clamp(-1, 1, U.lerp(0, ih, 1e-6, 1, -ev.wheelDeltaY));
-  
+    /** A wheel delta of one third of the window height changes z by the full range. */
+    let curr = R.clamp(-1, 1, U.lerp(0, ih, 1e-6, 1, 3 * ev.deltaY));
+
     InputSpace.evolve(
       R.map(
         val=>R.objOf("z", x => x + curr * (val.c1 - val.c0)),
         R.pickBy((val,key)=>key===targetKey,$InputSpace)
       )
     )
-    WheelDeltaY.set(curr);
-
   }
-  
+
   function feedback(e) {
     instruments[equipped] = R.assoc('ev', e, instruments[equipped]);
   }
 
   onMount(() => {
-    S.mousemove_.thru(S.obs(feedback));
-
-
     trackOffsetX = document.getElementsByClassName('track')[0].getBoundingClientRect().left;
   });
 </script>
 
 <svelte:window
   bind:innerHeight={ih}
-  bind:innerWidth={iw}
   on:keydown={(ev) => UIOptions.update(R.assoc('noscroll', ev.altKey))}
   on:keyup={(ev) => UIOptions.update(R.assoc('noscroll', ev.altKey))}
   on:keydown={(ev) => {
@@ -224,7 +195,7 @@
   on:mousemove={(ev) => {
     /** Make the instrument palette follows the cursor when hidden */
     hidden ? palette.update((x) => x) : ($palette = { x: ev.x, y: ev.y });
-    // feedback(ev);
+    feedback(ev);
     EventStore.update(R.mergeLeft(R.pick(['x', 'y', 'movementX', 'movementY'], ev)));
   }}
   on:resize={(ev) => {
@@ -266,7 +237,6 @@
               style="left:{W.rescale_index($H_global.toString(), $Bits, $Unlocked.length) *
                 track_w -
                 3}px"
-              bind:clientWidth={thumb_w}
             />
           </div>
           <div>max</div>
@@ -281,7 +251,6 @@
               class="unlocked thumb"
               style="left:{W.rescale_index($H_local.toString(), $Bits, $Unlocked.length) * track_w -
                 3}px"
-              bind:clientWidth={thumb_w}
             />
           </div>
           <div>max</div>
@@ -305,7 +274,6 @@
               class="range"
               style="width:{(track_w * z) / (c1 - c0)}px; 
               left:{(track_w * (b - z / 2 - c0)) / (c1 - c0)}px;"
-              bind:clientWidth={range_w}
             />
             <div class="middle" style="width:{2}px; left:{U.scale(c0, c1, 0, track_w, b)}px;" />
             <div
@@ -314,7 +282,6 @@
               class:unlocked={!locked}
               class="thumb"
               style="left: calc({(100 * (a - c0)) / (c1 - c0)}% - 5px)"
-              bind:clientWidth={thumb_w}
             />
           </div>
           <div data-store="2" data-path="{key} c1" class:unlocked={!locked} class="bound c1">
@@ -360,6 +327,5 @@
         <option value={templateName}>{templateName}</option>
       {/each}
     </select>
-    <button>Export</button>
   </div>
 </main>

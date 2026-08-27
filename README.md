@@ -2,9 +2,9 @@
 
 ## Disclaimer
 
-This is an experimental research project that aims to explores exotic design ideas for interacting with parametric models.
+This is an experimental research project that aims to explore exotic design ideas for interacting with parametric models.
 For the sake of demonstration, the interface is wired to visual synthesizers built and rendered using the hydra-synth library.
-Not that this is still very much an ongoing work, even this README is not complete.
+Note that this is still very much an ongoing work, even this README is not complete.
 Stability, reusability and browser / workstation compatibility are not guaranteed.
 
 ## General idea
@@ -24,7 +24,7 @@ The "Global" macro-slider controls the center coordinates of a sub-region of the
 The conceptual model is built around the principles of "instrumental interaction", i.e. user actions are mediated by the "instrument" that is currently equipped.
 To bring up the instrument Palette, hold space bar and select the desired option.
 An instrument is essentially a transfer function that maps UIEvents to Store updates.
-The update triggered by an "instrumented" action might be ignored or amended if an object's state is constrained in a way that conflicts with the attempted update.  ]]]]]]]]]]]]]]]]]]]]]]]]]]]
+The update triggered by an "instrumented" action might be ignored or amended if an object's state is constrained in a way that conflicts with the attempted update.
 
 Currently implemented instruments are
 * Fix (fixing an element makes it hermetic to updates until it has been unfixed)
@@ -40,7 +40,7 @@ The UI enables the following actions:
 * Load a synth template from a dropdown menu
 * Adjust the parameters of the synth using the sliders
 * Adjust the range of interest for a given parameters by scaling and displacing the area slider
-* Save (resp. recall) input presets by clicking the save button (resp. the correspponding snapshot)
+* Save (resp. recall) input presets by clicking the save button (resp. the corresponding snapshot)
 * Adjust the size of the local exploration region with SHIFT + scroll 
 * Move in the parameter space following the Hilbert curve using the macro sliders.
 
@@ -50,6 +50,16 @@ If you fork the project, synthesizer templates with their input presets are desc
 Edit the file to add more templates and presets.
 
 
-## Dependencies
+## Running locally
 
+The project uses Yarn and Vite:
 
+```sh
+yarn install
+yarn dev      # development server
+yarn check    # svelte-check: type errors and Svelte warnings
+yarn format   # prettier
+yarn build    # production build, written to docs/ for GitHub Pages
+```
+
+`src/pkg/` contains the Hilbert-curve transforms compiled to WebAssembly. It is the `wasm-pack` output of a Rust wrapper around the [hilbert](https://github.com/paulchernoch/hilbert) crate; the Rust source is not part of this repository, so the generated files are committed as they are.

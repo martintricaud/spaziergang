@@ -1,15 +1,9 @@
-import { writable, Writable, get, derived } from "svelte/store";
+import { writable, Writable, derived } from "svelte/store";
 import * as R from 'ramda';
 import * as U from './utils';
 import { constraintsPreset } from "./constraints";
 import * as vec from './vec'
-import { EventStore } from "./UIState";
 
-let $E;
-
-EventStore.subscribe(
-    x => $E = x
-)
 interface Vec {
     x: number,
     y: number,
@@ -18,15 +12,6 @@ interface Vec {
 }
 
 type P<T> = Record<string, T> //record with fields of type t
-
-let randomForward = axes => _n => R.zipObj(
-	axes,
-	axes.map(
-		(_val) =>
-			U.lerp(0, 1, 0, 2**32 - 1, Math.random())
-	)
-)
-
 
 export function liftedConstraintStore(ranges: Array<[string, P<any>]>, _epsilon: number = 0.01):[any,Writable<string[]>] {
 	//compute a default value for a parameter if the required attributes aren't all specified
@@ -64,7 +49,7 @@ export function MuesliStore(data) {
 	const [Params, Keys]:[any, Writable<string[]>] = liftedConstraintStore(data.inputSpace)
 	const Bits: Writable<number> = writable(32)
 	const Unlocked = derived([Keys,Params],([$K, $P])=>R.reject((x:string)=>R.prop('locked',$P[x]),$K))
-	const MaxH = derived([Unlocked,Bits],([$U, $B])=>BigInt(2**($U.length*$B)-1))
+	const MaxH = derived([Unlocked,Bits],([$U, $B])=>(1n << BigInt($U.length*$B)) - 1n)
 	let $Params, $Bits:number, $Unlocked:Array<string>, $H_global, $H_local, $MaxH
 
 	Bits.subscribe((b:number) => { $Bits = b })
@@ -186,7 +171,6 @@ export function AlignmentStore(P1: Partial<Vec>, P2: Partial<Vec>, P3: Partial<V
             }
             else {
                 A.update(u)
-				console.log($B.movementX)
 				let Bnew = Math.abs($AC.y)-0.01>Math.abs($C.y-$K.y) ? {
                     x: ($K.y - $C.y)*$AC.x/$AC.y + $C.x,
                     y: $K.y

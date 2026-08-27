@@ -3,7 +3,6 @@
     import * as R from 'ramda';
     import { AlignmentStore } from '../lib/storesFactories';
     import { EventStore } from '../lib/UIState';
-    import { onMount } from 'svelte';
     export let name, equipped;
     import * as vec from '../lib/vec';
 
@@ -36,7 +35,6 @@
             dispatch('effect', R.mergeRight($EventStore, effectValue));
         }
     }
-    $: onMount(() => {});
 </script>
 
 <svelte:window
@@ -64,6 +62,7 @@
 
 <svg
     class:inactive={!equipped}
+    aria-label={name}
     style="position:absolute; top:0; left:0"
     width="100vw"
     height="100vh"
