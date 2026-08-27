@@ -1,8 +1,8 @@
 <script>
   import { writable, derived } from 'svelte/store';
   import { onMount } from 'svelte';
-  import { wasm_functions as W } from './main.js';
   import { MuesliStore } from './lib/storesFactories';
+  import { rescale } from './lib/hilbert';
   import { examples } from './lib/data';
   import * as U from './lib/utils';
   import * as R from 'ramda';
@@ -70,7 +70,7 @@
   $: ff = instruments[equipped].ff;
 
   $: [H_global, H_local, InputSpace, Bits, Unlocked, Inputs, MaxH] = MuesliStore(
-    $Templates[SelectedExample]
+    $Templates[SelectedExample],
   );
 
   /** EFFECTFUL FUNCTIONS modify reactive values, can be thought of has handlers */
@@ -95,7 +95,7 @@
       H_local.set(lerpTo(0n, $MaxH));
     } else if (ev.detail.targetStore == 2) {
       InputSpace.evolve(
-        U.deepObjOf([key, field], (x) => lerpTo($InputSpace[key].c0, $InputSpace[key].c1))
+        U.deepObjOf([key, field], (x) => lerpTo($InputSpace[key].c0, $InputSpace[key].c1)),
       );
     }
   }
@@ -146,7 +146,7 @@
   function equip_effect(name) {
     instruments = R.mapObjIndexed(
       (x, k) => R.modify('equipped', k == name ? R.T : R.F, x),
-      instruments
+      instruments,
     );
   }
 
@@ -154,7 +154,7 @@
     /** Retrieve all elements located "beneath" the pointer */
     let targetList = document
       .elementsFromPoint(ev.x, ev.y)
-      .filter((x) => x.hasAttribute("data-path"));
+      .filter((x) => x.hasAttribute('data-path'));
     /** Consider the target of the effect to be the top-most element */
     const target = targetList[0];
     const [targetKey, field] = U.stringToPath(target?.dataset?.path ?? '');
@@ -163,10 +163,10 @@
 
     InputSpace.evolve(
       R.map(
-        val=>R.objOf("z", x => x + curr * (val.c1 - val.c0)),
-        R.pickBy((val,key)=>key===targetKey,$InputSpace)
-      )
-    )
+        (val) => R.objOf('z', (x) => x + curr * (val.c1 - val.c0)),
+        R.pickBy((val, key) => key === targetKey, $InputSpace),
+      ),
+    );
   }
 
   function feedback(e) {
@@ -234,9 +234,7 @@
               data-store="0"
               data-path="h b"
               data-test
-              style="left:{W.rescale_index($H_global.toString(), $Bits, $Unlocked.length) *
-                track_w -
-                3}px"
+              style="left:{rescale($H_global, $Bits, $Unlocked.length) * track_w - 3}px"
             />
           </div>
           <div>max</div>
@@ -249,8 +247,7 @@
               data-store="1"
               data-path="h a"
               class="unlocked thumb"
-              style="left:{W.rescale_index($H_local.toString(), $Bits, $Unlocked.length) * track_w -
-                3}px"
+              style="left:{rescale($H_local, $Bits, $Unlocked.length) * track_w - 3}px"
             />
           </div>
           <div>max</div>

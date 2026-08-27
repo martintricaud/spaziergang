@@ -63,4 +63,4 @@ yarn format   # prettier
 yarn build    # production build, written to docs/ for GitHub Pages
 ```
 
-`src/pkg/` contains the Hilbert-curve transforms compiled to WebAssembly. It is the `wasm-pack` output of a Rust wrapper around the [hilbert](https://github.com/paulchernoch/hilbert) crate; the Rust source is not part of this repository, so the generated files are committed as they are.
+The Hilbert-curve transforms are implemented in `src/lib/hilbert.ts` on native BigInt, and pinned by `test/hilbert.test.ts`.

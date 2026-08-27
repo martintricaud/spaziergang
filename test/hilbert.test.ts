@@ -1,7 +1,6 @@
 /**
- * Pins `src/lib/hilbert.ts`: the curve convention (known-answer vectors, and a comparison with
- * the wasm package while it is still in the tree), the round trip between index and axes, and
- * the semantics of `rescale`.
+ * Pins `src/lib/hilbert.ts`: the curve convention (known-answer vectors), the round trip between
+ * index and axes, and the semantics of `rescale`.
  *
  * Every random value comes from a seeded generator, so a failing case reproduces on a rerun.
  */
@@ -14,7 +13,7 @@ import { forward, inverse, rescale } from '../src/lib/hilbert.ts';
 /** Bits per axis. The app uses 32 everywhere. */
 const BITS = 32;
 
-/** Dimension counts covered by the vectors, the round trip, and the wasm comparison. */
+/** Dimension counts covered by the round trip. */
 const DIMENSIONS = Array.from({ length: 19 }, (_, i) => i + 1);
 
 /** Mulberry32: a small seeded PRNG, so that a failure names a case that reproduces. */
@@ -225,36 +224,4 @@ describe('zero dimensions', () => {
   test('rescale is 0, whatever the index', () => {
     assert.equal(rescale(5n, BITS, 0), 0);
   });
-});
-
-// ---------------------------------------------------------------------------------------------
-// Comparison with the wasm package in `src/pkg`, which `src/lib/hilbert.ts` replaces. Checkpoint 3
-// of the port deletes `src/pkg`; delete this block, its three imports included, in the same
-// commit. Nothing above this line depends on the wasm.
-// ---------------------------------------------------------------------------------------------
-
-import { readFileSync } from 'node:fs';
-import initWasm, {
-  hilbert_axes_wasm_from_str,
-  hilbert_index_wasm_to_str,
-} from '../src/pkg/hilbert.js';
-
-await initWasm(readFileSync(new URL('../src/pkg/hilbert_bg.wasm', import.meta.url)));
-
-describe('comparison with the wasm package', () => {
-  for (const dims of DIMENSIONS) {
-    test(`${dims} dimensions`, () => {
-      for (const index of sampleIndices(dims)) {
-        const axes = forward(index, BITS, dims);
-        const wasmAxes = hilbert_axes_wasm_from_str(index.toString(), BITS, dims);
-        assert.deepEqual(axes, wasmAxes, `forward of ${index}`);
-        const wasmIndex = BigInt(hilbert_index_wasm_to_str(axes, BITS));
-        assert.equal(inverse(axes, BITS), wasmIndex, `inverse of the axes of ${index}`);
-      }
-      for (const axes of sampleAxes(dims)) {
-        const wasmIndex = BigInt(hilbert_index_wasm_to_str(axes, BITS));
-        assert.equal(inverse(axes, BITS), wasmIndex, `inverse of [${axes}]`);
-      }
-    });
-  }
 });
