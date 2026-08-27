@@ -58,6 +58,7 @@ The project uses Yarn and Vite:
 yarn install
 yarn dev      # development server
 yarn check    # svelte-check: type errors and Svelte warnings
+yarn test     # node:test: the Hilbert transforms in src/lib/hilbert.ts
 yarn format   # prettier
 yarn build    # production build, written to docs/ for GitHub Pages
 ```

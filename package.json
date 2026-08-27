@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-check --threshold error",
+    "test": "node --test 'test/**/*.test.ts'",
     "format": "prettier --write ."
   },
   "devDependencies": {
