@@ -6,6 +6,8 @@ export default defineConfig(({ command, mode }) => {
   const isProduction = mode === 'production';
   return {
     plugins: [svelte()],
+    /** hydra-synth's bundled dependencies reference the Node global object. */
+    define: { global: 'globalThis' },
     base: isProduction ? '/muesli/' : '/',
     build: {
       outDir: 'docs',

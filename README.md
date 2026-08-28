@@ -52,7 +52,7 @@ Edit the file to add more templates and presets.
 
 ## Running locally
 
-The project uses Yarn and Vite:
+The project uses Yarn and Vite. Node 20.19 or later is required.
 
 ```sh
 yarn install
