@@ -1,6 +1,6 @@
 <script>
     import { createEventDispatcher } from 'svelte';
-    import * as R from 'ramda';
+    import { merge, pick } from 'remeda';
     import { AlignmentStore } from '../lib/storesFactories';
     import { EventStore } from '../lib/UIState';
     export let name, equipped;
@@ -18,7 +18,7 @@
     );
 
     /** P1 is constrained by the main EventStore, i.e. it is updated at every movement of the mouse*/
-    $: P1.set(R.pick(['x', 'y', 'movementX', 'movementY'], $EventStore));
+    $: P1.set(pick($EventStore, ['x', 'y', 'movementX', 'movementY']));
 
     $: ortho = {
         x: vec.unit(vec.sub($P3, $P1)).y,
@@ -32,7 +32,7 @@
             P2: $P2,
         };
         if ($Target?.elem != undefined) {
-            dispatch('effect', R.mergeRight($EventStore, effectValue));
+            dispatch('effect', merge($EventStore, effectValue));
         }
     }
 </script>

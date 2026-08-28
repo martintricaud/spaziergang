@@ -196,7 +196,18 @@ export const synth1 = a => x => x["noise"](a.noise_scale1, 1 / a.noise_scale1)["
 
 
 
-export const examples = [{
+/** A synth template with one input preset: parameter ranges plus the two Hilbert indices. */
+export interface Template {
+	templateName: string;
+	presetName: string;
+	inputSpace: Array<[string, Record<string, number | boolean>]>;
+	synth: (a: Record<string, number>) => (x: any) => any;
+	author?: string;
+	h_global?: bigint;
+	h_local?: bigint;
+}
+
+export const examples: Template[] = [{
 	// licensed with CC BY-NC-SA 4.0 https://creativecommons.org/licenses/by-nc-sa/4.0/
 	// by Olivia Jack
 	// https://ojack.github.io

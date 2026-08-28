@@ -2,6 +2,10 @@ import * as R from 'ramda';
 type R<T> = Record<string, T>;
 
 /** Makes multiplication polymorphic over bigint and numbers */
+export function prod(a: number, b: number, precision: number): number;
+export function prod(a: bigint, b: bigint, precision: number): bigint;
+export function prod(a: number, b: bigint, precision: number): bigint;
+export function prod(a: bigint, b: number, precision: number): bigint;
 export function prod(a, b, precision) {
   if (typeof a === typeof b) {
     return a * b;
@@ -114,24 +118,12 @@ export function lerpLens(
 
 /** Splits a space-separated path such as "key 0" into its segments, converting numeric segments to numbers; an empty or undefined path gives an empty array. */
 export function stringToPath(s: string | undefined): Array<string | number> {
-  return s ? R.map((x: any) => (isNaN(x) ? x : Number(x)), R.split(' ', s)) : [];
+  return s ? s.split(' ').map((x: any) => (isNaN(x) ? x : Number(x))) : [];
 }
 
 /** Utility for piping evolvers */
 export const pipeEvolver = (evolver1, evolver2) =>
   R.mergeWith((f, g) => R.pipe(f, g), evolver1, evolver2);
-
-export function evolve(transformations, object) {
-  const result = {};
-  for (const [key, value] of Object.entries(object)) {
-    if (key in transformations) {
-      result[key] = transformations[key](value);
-    } else {
-      result[key] = value;
-    }
-  }
-  return result;
-}
 
 export const constrainEvolver = (obj, evolver, predicate, g) =>
   R.cond([
@@ -153,9 +145,3 @@ export const solve = R.curry((constraints, f, v) => {
 export const liftSolve = R.curry((solver, F, X) => {
   return R.evolve(mergePartialWith(solver, F, X), X);
 });
-
-// function that takes two lists listA and listB and returns true if listA contains at least one element of listB
-export const containsAny = (listA, listB) => R.any(R.flip(R.includes)(listA), listB);
-
-export const targetAcquisition = (context) => (pointX, pointY, conditions) =>
-  context.elementsFromPoint(pointX, pointY).filter(conditions);

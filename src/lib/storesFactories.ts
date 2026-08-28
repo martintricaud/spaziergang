@@ -1,5 +1,6 @@
 import { writable, Writable, derived } from 'svelte/store';
 import * as R from 'ramda';
+import { constant, filter, fromEntries, map, mapValues, merge, pick, prop } from 'remeda';
 import * as U from './utils';
 import { forward, inverse } from './hilbert';
 import { constraintsPreset } from './constraints';
@@ -29,11 +30,11 @@ export function liftedConstraintStore(
   }
 
   //initialize object with default args in each field.
-  let X0: P<P<any>> = R.map(computeDefault, R.fromPairs(ranges));
-  let F0 = U.deepAlways(R.fromPairs(ranges));
+  let X0: P<P<any>> = mapValues(fromEntries(ranges), computeDefault);
+  let F0 = U.deepAlways(fromEntries(ranges));
 
   const Params = writable(U.liftSolve(U.solve(constraintsPreset), F0, X0)); //store of records
-  const Keys: Writable<string[]> = writable(R.map((x) => x[0], ranges));
+  const Keys: Writable<string[]> = writable(map(ranges, (x) => x[0]));
 
   function evolve(transformer) {
     Params.update(U.liftSolve(U.solve(constraintsPreset), transformer));
@@ -52,9 +53,7 @@ export function MuesliStore(data) {
   // B = bits per dimensions, P = parameters, K = Keys, HF = Hilbert Forward, HR = Hilbert Reverse
   const [Params, Keys]: [any, Writable<string[]>] = liftedConstraintStore(data.inputSpace);
   const Bits: Writable<number> = writable(32);
-  const Unlocked = derived([Keys, Params], ([$K, $P]) =>
-    R.reject((x: string) => R.prop('locked', $P[x]), $K),
-  );
+  const Unlocked = derived([Keys, Params], ([$K, $P]) => filter($K, (x: string) => !$P[x].locked));
   const MaxH = derived([Unlocked, Bits], ([$U, $B]) => (1n << BigInt($U.length * $B)) - 1n);
   let $Params, $Bits: number, $Unlocked: Array<string>, $H_global, $H_local, $MaxH;
 
@@ -89,11 +88,11 @@ export function MuesliStore(data) {
 
   //setters just pass their arguments to an "Always" function then call the update with that function
   function setH_local(h) {
-    updateH_local(R.always(R.clamp(0n, $MaxH, h)));
+    updateH_local(constant(R.clamp(0n, $MaxH, h)));
   }
 
   function setH_global(h) {
-    updateH_global(R.always(R.clamp(0n, $MaxH, h)));
+    updateH_global(constant(R.clamp(0n, $MaxH, h)));
   }
 
   function updateH_local(f_h) {
@@ -109,19 +108,19 @@ export function MuesliStore(data) {
   }
 
   function evolveParams(X) {
-    updateParams(U.liftSolve(U.solve(constraintsPreset), R.pick($Unlocked, X)));
+    updateParams(U.liftSolve(U.solve(constraintsPreset), pick(X, $Unlocked)));
   }
 
   function updateParams(X) {
     Params.update(X);
     let [H_global_setters, H_local_setters] = [
-      R.mapObjIndexed(R.view(lensB), $Params),
-      R.mapObjIndexed(R.view(lensA), $Params),
+      mapValues($Params, R.view(lensB)),
+      mapValues($Params, R.view(lensA)),
     ];
     //compute inverse for the subset of unlocked keys only
-    H_local.set(inverse(Uint32Array.from(R.props($Unlocked, H_local_setters)), $Bits));
+    H_local.set(inverse(Uint32Array.from(map($Unlocked, (key) => H_local_setters[key])), $Bits));
     //compute inverse for the subset of unlocked keys only
-    H_global.set(inverse(Uint32Array.from(R.props($Unlocked, H_global_setters)), $Bits));
+    H_global.set(inverse(Uint32Array.from(map($Unlocked, (key) => H_global_setters[key])), $Bits));
   }
   return [
     { subscribe: H_global.subscribe, set: setH_global, update: updateH_global },
@@ -129,7 +128,7 @@ export function MuesliStore(data) {
     { subscribe: Params.subscribe, set: Params.set, update: updateParams, evolve: evolveParams },
     Bits,
     Unlocked,
-    derived(Params, R.pluck('a')),
+    derived(Params, (params: P<any>) => mapValues(params, prop('a'))),
     MaxH,
   ];
 }
@@ -203,7 +202,7 @@ export function AlignmentStore(P1: Partial<Vec>, P2: Partial<Vec>, P3: Partial<V
     K.set($B);
   }
   function ASet(v: any) {
-    AUpdate(R.mergeLeft(v));
+    AUpdate((a) => merge(a, v));
   }
 
   function AUpdate(u) {
@@ -219,7 +218,7 @@ export function AlignmentStore(P1: Partial<Vec>, P2: Partial<Vec>, P3: Partial<V
                 y: $K.y,
               }
             : vec.add($A, vec.scale(0.01, $AC));
-        B.update(R.mergeLeft(Bnew));
+        B.update((b) => merge(b, Bnew));
       }
     } else {
       if ($Shift) {
@@ -244,5 +243,5 @@ export function AlignmentStore(P1: Partial<Vec>, P2: Partial<Vec>, P3: Partial<V
     { subscribe: B.subscribe, set: ClickSet },
     { subscribe: C.subscribe, set: Shift.set },
     { subscribe: Target.subscribe },
-  ];
+  ] as const;
 }

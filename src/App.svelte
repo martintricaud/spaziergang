@@ -6,6 +6,25 @@
   import { examples } from './lib/data';
   import * as U from './lib/utils';
   import * as R from 'ramda';
+  import {
+    addProp,
+    clamp,
+    entries,
+    findIndex,
+    findLastIndex,
+    fromEntries,
+    groupByProp,
+    keys,
+    map,
+    mapValues,
+    merge,
+    pick,
+    pickBy,
+    prop,
+    set,
+    splice,
+    unique,
+  } from 'remeda';
   import HydraViewer from './components/HydraViewer.svelte';
   import ILever from './components/ILever.svelte';
   import IFix from './components/IFix.svelte';
@@ -16,10 +35,10 @@
   /** Initialize a store containing the example presets*/
   const Templates = writable(examples);
   /** Derived store where examples are grouped by template for convenience*/
-  const TemplateGroups = derived(Templates, R.groupBy(R.prop('templateName')));
+  const TemplateGroups = derived(Templates, (templates) => groupByProp(templates, 'templateName'));
   let SelectedTemplate = 'Grayscale Noise';
   /** By default, the selected example is the first that matches the selected template's name*/
-  let SelectedExample = R.findIndex(R.propEq('templateName', SelectedTemplate), $Templates);
+  let SelectedExample = findIndex($Templates, (t) => t.templateName === SelectedTemplate);
 
   let ih, track_w, trackOffsetX, hidden, SelectedUI;
 
@@ -64,8 +83,9 @@
     },
   };
 
-  /** reactive value that returns the name of the currently equipped instrument */
-  $: equipped = R.keys(R.pickBy((x, key) => x.equipped, instruments))[0];
+  /** Name of the currently equipped instrument. @type {string} */
+  let equipped;
+  $: equipped = keys(pickBy(instruments, (x) => x.equipped))[0];
   /** reactive value that returns the feedforward style for the selected instrument */
   $: ff = instruments[equipped].ff;
 
@@ -103,10 +123,10 @@
   function erase_target(target) {
     if ($TemplateGroups[SelectedTemplate].length > 1) {
       if (target < SelectedExample) {
-        Templates.update(R.remove(target, 1));
+        Templates.update((templates) => splice(templates, target, 1, []));
         SelectedExample += -1;
       } else if (target > SelectedExample) {
-        Templates.update(R.remove(target, 1));
+        Templates.update((templates) => splice(templates, target, 1, []));
       } else if (target == SelectedExample) {
         SelectedExample = target - 1;
         erase_target(target);
@@ -128,19 +148,21 @@
    */
   function save_handler() {
     /** creates a new preset whose name is unique for the given template. */
-    let presetName = U.assignDefaultName(R.pluck('presetName', $TemplateGroups[SelectedTemplate]));
+    let presetName = U.assignDefaultName(
+      map($TemplateGroups[SelectedTemplate], prop('presetName')),
+    );
     let toAdd = {
       templateName: SelectedTemplate,
       presetName: presetName,
-      inputSpace: R.toPairs($InputSpace),
+      inputSpace: entries($InputSpace),
       h_local: $H_local,
       h_global: $H_global,
       synth: $Templates[SelectedExample].synth,
     };
     /** Add the new example at the end of the Template array store */
-    Templates.update(R.insert(-1, toAdd));
+    Templates.update((templates) => [...templates, toAdd]);
     /** Shift the focus of SelectedExample to the newly saved preset*/
-    SelectedExample = R.findLastIndex(R.propEq('templateName', SelectedTemplate), $Templates);
+    SelectedExample = findLastIndex($Templates, (t) => t.templateName === SelectedTemplate);
   }
 
   function equip_effect(name) {
@@ -159,18 +181,18 @@
     const target = targetList[0];
     const [targetKey, field] = U.stringToPath(target?.dataset?.path ?? '');
     /** A wheel delta of one third of the window height changes z by the full range. */
-    let curr = R.clamp(-1, 1, U.lerp(0, ih, 1e-6, 1, 3 * ev.deltaY));
+    let curr = clamp(U.lerp(0, ih, 1e-6, 1, 3 * ev.deltaY), { min: -1, max: 1 });
 
     InputSpace.evolve(
-      R.map(
-        (val) => R.objOf('z', (x) => x + curr * (val.c1 - val.c0)),
-        R.pickBy((val, key) => key === targetKey, $InputSpace),
+      mapValues(
+        pickBy($InputSpace, (val, key) => key === targetKey),
+        (val) => ({ z: (x) => x + curr * (val.c1 - val.c0) }),
       ),
     );
   }
 
   function feedback(e) {
-    instruments[equipped] = R.assoc('ev', e, instruments[equipped]);
+    instruments[equipped] = addProp(instruments[equipped], 'ev', e);
   }
 
   onMount(() => {
@@ -181,14 +203,14 @@
 <svelte:window
   bind:innerHeight={ih}
   on:keydown={(ev) => {
-    UIOptions.update(R.assoc('noscroll', ev.altKey));
+    UIOptions.update((options) => set(options, 'noscroll', ev.altKey));
     hidden = ev.key == ' ' ? true : hidden && true;
     /** No choice but to blur some DOM elements to avoid triggering default DOM handlers. */
     document.getElementById('select-ui').blur();
     document.getElementById('select-template').blur();
   }}
   on:keyup={(ev) => {
-    UIOptions.update(R.assoc('noscroll', ev.altKey));
+    UIOptions.update((options) => set(options, 'noscroll', ev.altKey));
     hidden = ev.key == ' ' ? false : hidden || false;
     document.getElementById('save').blur();
   }}
@@ -196,7 +218,7 @@
     /** Make the instrument palette follows the cursor when hidden */
     hidden ? palette.update((x) => x) : ($palette = { x: ev.x, y: ev.y });
     feedback(ev);
-    EventStore.update(R.mergeLeft(R.pick(['x', 'y', 'movementX', 'movementY'], ev)));
+    EventStore.update((state) => merge(state, pick(ev, ['x', 'y', 'movementX', 'movementY'])));
   }}
   on:resize={(ev) => {
     /** this is ugly but Svelte doesn't have a convenient way to bind to an element's absolute Offset width */
@@ -218,7 +240,7 @@
         <span>{presetName}</span>
         <HydraViewer
           {synth}
-          data={R.pluck('a', R.fromPairs(inputSpace))}
+          data={mapValues(fromEntries(inputSpace), prop('a'))}
           w={150}
           h={150}
           autoloop={false}
@@ -327,11 +349,11 @@
     <select
       bind:value={SelectedTemplate}
       on:change={() =>
-        (SelectedExample = R.findIndex(R.propEq('templateName', SelectedTemplate), $Templates))}
+        (SelectedExample = findIndex($Templates, (t) => t.templateName === SelectedTemplate))}
       name="Presets"
       id="select-template"
     >
-      {#each R.uniq(R.pluck('templateName', $Templates)) as templateName}
+      {#each unique(map($Templates, prop('templateName'))) as templateName}
         <option value={templateName}>{templateName}</option>
       {/each}
     </select>
