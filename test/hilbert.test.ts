@@ -5,7 +5,7 @@
  * Every random value comes from a seeded generator, so a failing case reproduces on a rerun.
  */
 
-import { describe, test } from 'node:test';
+import { describe, test } from 'vitest';
 import assert from 'node:assert/strict';
 
 import { forward, inverse, rescale } from '../src/lib/hilbert.ts';
