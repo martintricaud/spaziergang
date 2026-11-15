@@ -1,5 +1,5 @@
 <script>
-  import { createEventDispatcher } from 'svelte';
+  import { createEventDispatcher, onDestroy } from 'svelte';
   import { orthoZoom } from 'orthozoom';
   import { linearChart, step } from 'instrument';
 
@@ -9,8 +9,11 @@
 
   const dispatch = createEventDispatcher();
 
-  /** `dMax` is the distance from the press, across the track, at which one pixel along the track moves the target by one step. Scrolling past the track's ends is not used. */
-  const definition = orthoZoom({ dMax: 500, edgeRate: 0 });
+  /**
+   * `dMax` is the distance from the press, across the track, at which one pixel along the track moves the target by one step.
+   * `edgeRate` is the speed at which the target keeps moving while the pointer is past an end of the track, in track pixels per second at the current zoom.
+   */
+  const definition = orthoZoom({ dMax: 500, edgeRate: 200 });
   let instrument = definition.instrument;
   /** The element held since the last press; undefined when no button is down or the press was on no target. */
   let held;
@@ -22,9 +25,8 @@
     return endo(0);
   }
 
-  /** The instrument follows the pointer even when it is not equipped, so that a press starts from the pointer's position. */
-  function move(ev) {
-    const shift = feed({ kind: 'move', p: { x: ev.x, y: ev.y } });
+  /** Moves the held target by `shift` steps. */
+  function apply(shift) {
     if (equipped && held && shift !== 0) {
       dispatch('effect', {
         targetPath: held.getAttribute('data-path'),
@@ -33,6 +35,25 @@
       });
     }
   }
+
+  /** The instrument follows the pointer even when it is not equipped, so that a press starts from the pointer's position. */
+  function move(ev) {
+    apply(feed({ kind: 'move', p: { x: ev.x, y: ev.y } }));
+  }
+
+  /** While a target is held, the instrument receives one `frame` input per animation frame: past an end of the track it answers with a shift even when the pointer does not move. */
+  let frameRequest;
+  let frameTime;
+  function frame(time) {
+    apply(feed({ kind: 'frame', dt: time - frameTime }));
+    frameTime = time;
+    frameRequest = requestAnimationFrame(frame);
+  }
+  function stopFrames() {
+    cancelAnimationFrame(frameRequest);
+    frameRequest = undefined;
+  }
+  onDestroy(stopFrames);
 
   /** On press, the held element is the topmost thumb or range under the pointer. Its chart maps its steps onto its track. */
   function press(ev) {
@@ -50,12 +71,17 @@
       kind: 'press',
       target: chart ? { chart, value: chart.fromPixel(box.left + box.width / 2) } : null,
     });
+    if (track && frameRequest === undefined) {
+      frameTime = performance.now();
+      frameRequest = requestAnimationFrame(frame);
+    }
     if (!track) held = undefined;
     /** Without this, the browser treats the press and the drag that follows as the start of a text selection and shows the text cursor. */
     else ev.preventDefault();
   }
 
   function release() {
+    stopFrames();
     held = undefined;
     feed({ kind: 'release' });
   }
