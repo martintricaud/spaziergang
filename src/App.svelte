@@ -46,6 +46,8 @@
   let SelectedExample = findIndex($Templates, (t) => t.templateName === SelectedTemplate);
 
   let ih, track_w, trackOffsetX, hidden, SelectedUI;
+  /** True when the preset gallery shows only its buttons. */
+  let presetsCollapsed = false;
 
   const palette = writable({ x: 0, y: 0 });
 
@@ -308,8 +310,19 @@
   }}
   on:wheel={(ev) => wheel_effect(ev)}
 />
-<main class="grid" id="main">
-  <div class="snapshots">
+<!-- Text can be selected only with the plain cursor: with an instrument, a drag must not select text. -->
+<main class="grid" class:no-selection={equipped !== 'cursor'} id="main">
+  <!-- The gallery shares the viewport's grid area and is drawn over its right edge. -->
+  <div class="snapshots" class:collapsed={presetsCollapsed}>
+    <!-- The button gives up the focus so that the space bar, which opens the palette, does not click it. -->
+    <button
+      id="toggle-presets"
+      aria-expanded={!presetsCollapsed}
+      on:click={(ev) => {
+        presetsCollapsed = !presetsCollapsed;
+        ev.currentTarget.blur();
+      }}><u>{presetsCollapsed ? 'show presets' : 'hide presets'}</u></button
+    >
     <button id="save" data-path="" on:click={() => save_handler()}><u>save</u></button>
     {#each $Templates as { templateName, presetName, code, inputSpace }, i}
       <label
