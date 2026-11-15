@@ -31,9 +31,11 @@
   import IFix from './components/IFix.svelte';
   import IEraser from './components/IEraser.svelte';
   import IResize from './components/IResize.svelte';
+  import IOrthoZoom from './components/IOrthoZoom.svelte';
   import { EventStore, UIOptions } from './lib/UIState';
   import { Table } from './lib/hydra-runtime';
   import { deriveInputSpace, rewrite } from './lib/hydra-rewrite';
+  import { STEPS_PER_PARAMETER, macroSteps, shiftIndex, shiftValue } from './lib/orthozoom-steps';
 
   /** Initialize a store containing the example presets*/
   const Templates = writable(examples);
@@ -83,6 +85,15 @@
       component: IResize,
       ff: '',
       effect: wheel_effect,
+    },
+    orthozoom: {
+      name: 'orthozoom',
+      equipped: false,
+      component: IOrthoZoom,
+      ff: 'willNone',
+      effect: orthozoom_effect,
+      /** Props that only this instrument's component receives. */
+      props: { steps: orthozoom_steps },
     },
   };
 
@@ -134,6 +145,25 @@
       InputSpace.evolve(
         U.deepObjOf([key, field], (x) => lerpTo($InputSpace[key].c0, $InputSpace[key].c1)),
       );
+    }
+  }
+
+  /** The number of steps of a target of OrthoZoom: a macro slider (stores 0 and 1) has one step per Hilbert index, a parameter has 2^32. */
+  function orthozoom_steps(store) {
+    return store == 2 ? STEPS_PER_PARAMETER : macroSteps($MaxH);
+  }
+
+  /** Moves the held target by the number of steps OrthoZoom computed for the last pointer move. */
+  function orthozoom_effect(ev) {
+    const { targetPath, targetStore, shift } = ev.detail;
+    if (targetStore == 0) {
+      H_global.update((h) => shiftIndex(h, shift));
+    } else if (targetStore == 1) {
+      H_local.update((h) => shiftIndex(h, shift));
+    } else if (targetStore == 2) {
+      const [key, field] = U.stringToPath(targetPath);
+      const { c0, c1 } = $InputSpace[key];
+      InputSpace.evolve(U.deepObjOf([key, field], (x) => shiftValue(x, shift, c0, c1)));
     }
   }
 
@@ -395,8 +425,8 @@
         </div>
       {/each}
     </div>
-    {#each Object.entries(instruments) as [name, { equipped, component, ev, effect }]}
-      <svelte:component this={component} {equipped} {ev} {name} on:effect={effect} />
+    {#each Object.entries(instruments) as [name, { equipped, component, ev, effect, props }]}
+      <svelte:component this={component} {equipped} {ev} {name} {...props} on:effect={effect} />
     {/each}
   </div>
   <div class="config">

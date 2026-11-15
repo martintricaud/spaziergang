@@ -98,21 +98,25 @@ input::-webkit-inner-spin-button {
   height: 100%;
 }
 
-/* The editor shares the viewport's grid area: it is drawn over the output and does not scroll with it. */
+/* The editor covers the viewport's grid area: it is drawn over the output and does not scroll with it.
+   Pointer events pass through it to the output, except on its own controls. */
 .code-editor {
   grid-area: b;
-  align-self: start;
-  justify-self: start;
+  position: relative;
   z-index: 1;
-  box-sizing: border-box;
-  width: min(60ch, calc(100% - 1rem));
   margin: 0.5rem;
+  pointer-events: none;
+}
+
+.code-editor>* {
+  pointer-events: auto;
 }
 
 .code-editor>textarea {
   display: block;
   box-sizing: border-box;
-  width: 100%;
+  width: min(60ch, 100%);
+  max-height: calc(100% - 3rem);
   resize: vertical;
   padding: 0.5rem;
   border: 1px solid black;
@@ -125,7 +129,11 @@ input::-webkit-inner-spin-button {
   user-select: text;
 }
 
+/* The reset button and the shortcut reminder stay at the bottom of the viewport. */
 .code-actions {
+  position: absolute;
+  bottom: 0;
+  left: 0;
   display: flex;
   column-gap: 1ch;
   align-items: baseline;
@@ -136,6 +144,8 @@ input::-webkit-inner-spin-button {
 }
 
 .code-error {
+  width: max-content;
+  max-width: 100%;
   background-color: rgba(240, 240, 240, 0.7);
   color: #B00020;
   white-space: pre-wrap;
