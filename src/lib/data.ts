@@ -207,6 +207,9 @@ export interface Template {
 	h_local?: bigint;
 }
 
+/** The Hilbert index at fraction `f` of the largest index for `n` unlocked parameters at 32 bits each. */
+const indexAt = (n: number, f: number): bigint => U.prod((1n << BigInt(32 * n)) - 1n, f, 6);
+
 export const examples: Template[] = [{
 	// licensed with CC BY-NC-SA 4.0 https://creativecommons.org/licenses/by-nc-sa/4.0/
 	// by Olivia Jack
@@ -234,8 +237,8 @@ export const examples: Template[] = [{
 			.scale(a.scale_factor)
 			.out(x.o0)
 	},
-	h_global: U.prod(BigInt(2 ** (32 * 10)), 0.1, 6),
-	h_local: U.prod(BigInt(2 ** (32 * 10)), 0.5, 6),
+	h_global: indexAt(10, 0.1),
+	h_local: indexAt(10, 0.5),
 }, {
 	// licensed with CC BY-NC-SA 4.0 https://creativecommons.org/licenses/by-nc-sa/4.0/
 	// Puertas III
@@ -266,8 +269,8 @@ export const examples: Template[] = [{
 			.modulateKaleid(x.shape(a.shape_modulation_sides, a.shape_modulation_scale, a.shape_modulation_fade))
 			.out(x.o0);
 	},
-	h_global: U.prod(BigInt(2 ** (32 * 10)), 0.1, 6),
-	h_local: U.prod(BigInt(2 ** (32 * 10)), 0.5, 6),
+	h_global: indexAt(11, 0.1),
+	h_local: indexAt(11, 0.5),
 }, {
 	// licensed with CC BY-NC-SA 4.0 https://creativecommons.org/licenses/by-nc-sa/4.0/
 	// by Olivia Jack
@@ -310,8 +313,8 @@ export const examples: Template[] = [{
 				.thresh(a.oscillator_3_threshold, a.oscillator_3_threshold_tolerance), a.oscillator_3_modulation_amount)
 			.out(x.o0);
 	},
-	h_global: U.prod(BigInt(2 ** (32 * 10)), 0.1, 6),
-	h_local: U.prod(BigInt(2 ** (32 * 10)), 0.5, 6),
+	h_global: indexAt(18, 0.1),
+	h_local: indexAt(18, 0.5),
 },{
 	templateName: "Grayscale Noise",
 	presetName: "preset0",
@@ -333,8 +336,8 @@ export const examples: Template[] = [{
 			.posterize()
 			.out(x.o0)
 	},
-	h_global: U.prod(BigInt(2 ** (32 * 10)), 0.1, 6),
-	h_local: U.prod(BigInt(2 ** (32 * 10)), 0.5, 6),
+	h_global: indexAt(6, 0.1),
+	h_local: indexAt(6, 0.5),
 },{
 	author: "Asdrúbal Gomez",
 	templateName:"Asdrubal",

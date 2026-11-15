@@ -16,7 +16,7 @@ export const constraintsPreset = [
     predicate: (obj) => obj.z >= obj.c1 - obj.c0 && obj.z <= e,
     g: (f, v) => {
       return {
-        z: (x) => clamp(f.z(x), { min: e, max: f.c1(v.c1) - f.c0(v.c0) }),
+        z: (x) => clamp(x, { min: e, max: f.c1(v.c1) - f.c0(v.c0) }),
       };
     },
   },
@@ -24,7 +24,7 @@ export const constraintsPreset = [
     predicate: (obj) => obj.b <= obj.c0 + obj.z / 2 && obj.b >= obj.c1 - obj.z / 2,
     g: (f, v) => {
       return {
-        b: (x) => clamp(f.b(x), { min: f.c0(v.c0) + f.z(v.z) / 2, max: f.c1(v.c1) - f.z(v.z) / 2 }),
+        b: (x) => clamp(x, { min: f.c0(v.c0) + f.z(v.z) / 2, max: f.c1(v.c1) - f.z(v.z) / 2 }),
       };
     },
   },
@@ -32,7 +32,7 @@ export const constraintsPreset = [
     predicate: (obj) => obj.a <= obj.b - obj.z / 2 && obj.a >= obj.b + obj.z / 2,
     g: (f, v) => {
       return {
-        a: (x) => clamp(f.a(x), { min: f.b(v.b) - f.z(v.z) / 2, max: f.b(v.b) + f.z(v.z) / 2 }),
+        a: (x) => clamp(x, { min: f.b(v.b) - f.z(v.z) / 2, max: f.b(v.b) + f.z(v.z) / 2 }),
       };
     },
   },
