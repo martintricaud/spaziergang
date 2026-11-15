@@ -130,7 +130,7 @@ input::-webkit-inner-spin-button {
   user-select: text;
 }
 
-/* The reset button and the shortcut reminder stay at the bottom of the viewport. */
+/* The reset and evaluate buttons stay at the bottom of the viewport. */
 .code-actions {
   position: absolute;
   bottom: 0;
@@ -138,10 +138,6 @@ input::-webkit-inner-spin-button {
   display: flex;
   column-gap: 1ch;
   align-items: baseline;
-  width: max-content;
-  max-width: 100%;
-  background-color: rgba(240, 240, 240, 0.7);
-  color: #404040;
 }
 
 .code-error {

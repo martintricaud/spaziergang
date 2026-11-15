@@ -31,7 +31,9 @@
     on:keyup|stopPropagation={() => {}}></textarea>
   <div class="code-actions">
     <button type="button" on:click={() => (draft = original)}><u>reset</u></button>
-    <span>Ctrl+Enter or Cmd+Enter evaluates</span>
+    <button type="button" on:click={() => dispatch('evaluate', draft)}
+      ><u>Evaluate (ctrl/cmd + Enter)</u></button
+    >
   </div>
   {#if error}
     <div class="code-error" role="alert">{error}</div>
