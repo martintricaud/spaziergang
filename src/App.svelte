@@ -179,7 +179,7 @@
       .filter((x) => x.hasAttribute('data-path'));
     /** Consider the target of the effect to be the top-most element */
     const target = targetList[0];
-    const [targetKey, field] = U.stringToPath(target?.dataset?.path ?? '');
+    const [targetKey, field] = U.stringToPath(target?.getAttribute('data-path') ?? '');
     /** A wheel delta of one third of the window height changes z by the full range. */
     let curr = clamp(U.lerp(0, ih, 1e-6, 1, 3 * ev.deltaY), { min: -1, max: 1 });
 

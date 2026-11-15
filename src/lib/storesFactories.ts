@@ -1,4 +1,5 @@
-import { writable, Writable, derived } from 'svelte/store';
+import { writable, derived } from 'svelte/store';
+import type { Writable, Readable } from 'svelte/store';
 import * as R from 'ramda';
 import { constant, filter, fromEntries, map, mapValues, merge, pick, prop } from 'remeda';
 import * as U from './utils';
@@ -15,10 +16,18 @@ interface Vec {
 
 type P<T> = Record<string, T>; //record with fields of type t
 
+/** The parameter store: a writable record of parameter records, plus `evolve`, which applies an evolver through the constraint solver. */
+export interface ParamsStore {
+  subscribe: Readable<P<P<any>>>['subscribe'];
+  set: (X: P<P<number | boolean>>) => void;
+  update: (updater: (value: P<P<any>>) => P<P<any>>) => void;
+  evolve: (transformer: P<P<(x: any) => any>>) => void;
+}
+
 export function liftedConstraintStore(
   ranges: Array<[string, P<any>]>,
   _epsilon: number = 0.01,
-): [any, Writable<string[]>] {
+): [ParamsStore, Writable<string[]>] {
   //compute a default value for a parameter if the required attributes aren't all specified
   function computeDefault(p) {
     let r = p;
@@ -51,7 +60,7 @@ export function liftedConstraintStore(
 
 export function MuesliStore(data) {
   // B = bits per dimensions, P = parameters, K = Keys, HF = Hilbert Forward, HR = Hilbert Reverse
-  const [Params, Keys]: [any, Writable<string[]>] = liftedConstraintStore(data.inputSpace);
+  const [Params, Keys] = liftedConstraintStore(data.inputSpace);
   const Bits: Writable<number> = writable(32);
   const Unlocked = derived([Keys, Params], ([$K, $P]) => filter($K, (x: string) => !$P[x].locked));
   const MaxH = derived([Unlocked, Bits], ([$U, $B]) => (1n << BigInt($U.length * $B)) - 1n);
@@ -102,7 +111,7 @@ export function MuesliStore(data) {
   }
 
   function updateH_global(f_h) {
-    H_global.update(R.pipe(f_h, R.clamp(0n, $MaxH)));
+    H_global.update((x) => R.clamp(0n, $MaxH, f_h(x)));
     let hx = R.zipObj($Unlocked, forward($H_global, $Bits, $Unlocked.length));
     Params.set(R.mergeWith(R.set(lensB), hx, $Params));
   }
@@ -130,7 +139,7 @@ export function MuesliStore(data) {
     Unlocked,
     derived(Params, (params: P<any>) => mapValues(params, prop('a'))),
     MaxH,
-  ];
+  ] as const;
 }
 
 export function AlignmentStore(P1: Partial<Vec>, P2: Partial<Vec>, P3: Partial<Vec>) {

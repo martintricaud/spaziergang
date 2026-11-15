@@ -13,7 +13,7 @@
     /** Initialize a lever made of three points with alignment constraints */
     const [P1, P2, P3, Target] = AlignmentStore(
         { x: 0, y: 0, movementX: 0, movementY: 0 },
-        { x: 0, y: 0 - 10, movementX: 0, movementY: 0, mXPrev: 0 },
+        { x: 0, y: 0 - 10, movementX: 0, movementY: 0 },
         { x: 0, y: 0 - 50, movementX: 0, movementY: 0 }
     );
 

@@ -14,5 +14,7 @@ export default defineConfig(({ command, mode }) => {
       target: 'es2020', // Set the target environment here
       minify: isProduction,
     },
+    /** Other folders (plan references under .claude/) can hold test files that must not run. */
+    test: { include: ['test/**/*.test.ts'] },
   };
 });
