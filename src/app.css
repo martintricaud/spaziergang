@@ -284,6 +284,8 @@ label>input{
 .no-selection * {
   user-select: none !important;
   -webkit-user-select: none !important;
+  /* The pointer keeps the arrow shape over text. */
+  cursor: default !important;
 }
 
 /* A textarea ignores user-select, so it receives no pointer event: a press on it cannot place a caret or start a selection. */

@@ -54,6 +54,8 @@
         : null,
     });
     if (!track) held = undefined;
+    /** Without this, the browser treats the press and the drag that follows as the start of a text selection and shows the text cursor. */
+    else ev.preventDefault();
   }
 
   function release() {
