@@ -166,11 +166,17 @@ input::-webkit-inner-spin-button {
   border: 2px solid white;
   outline: 1px solid black;
   border-radius: 3px;
-  overflow: scroll;
+  overflow: hidden;
   z-index: -1;
 }
+/* The output fills the viewport and keeps its proportions: the part that exceeds the viewport is cropped. */
 .viewport>canvas{
-  min-height:1000px;
+  display: block;
+  float: none;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  object-fit: cover;
 }
 
 .snapshots {
