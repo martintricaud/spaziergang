@@ -54,6 +54,8 @@ Edit the file to add more templates and presets.
 
 The project uses pnpm and Vite. Node 20.19 or later is required.
 
+Muesli imports four packages (`instrument`, `archie`, `orthozoom`, `environment`) from the repository `displacement-techniques-sandbox` through local links. That repository must be cloned next to this one (`../displacement-techniques-sandbox`), and `pnpm install` must be run there before it is run here.
+
 ```sh
 pnpm install
 pnpm dev      # development server

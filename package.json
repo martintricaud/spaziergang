@@ -24,7 +24,11 @@
   "dependencies": {
     "acorn": "^8.19.0",
     "acorn-walk": "^8.3.5",
+    "archie": "link:../displacement-techniques-sandbox/packages/archie",
+    "environment": "link:../displacement-techniques-sandbox/packages/environment",
     "hydra-synth": "^1.3.24",
+    "instrument": "link:../displacement-techniques-sandbox/packages/instrument",
+    "orthozoom": "link:../displacement-techniques-sandbox/packages/orthozoom",
     "ramda": "^0.28.0",
     "remeda": "^2.45.0"
   },

@@ -14,9 +14,21 @@ importers:
       acorn-walk:
         specifier: ^8.3.5
         version: 8.3.5
+      archie:
+        specifier: link:../displacement-techniques-sandbox/packages/archie
+        version: link:../displacement-techniques-sandbox/packages/archie
+      environment:
+        specifier: link:../displacement-techniques-sandbox/packages/environment
+        version: link:../displacement-techniques-sandbox/packages/environment
       hydra-synth:
         specifier: ^1.3.24
         version: 1.3.24
+      instrument:
+        specifier: link:../displacement-techniques-sandbox/packages/instrument
+        version: link:../displacement-techniques-sandbox/packages/instrument
+      orthozoom:
+        specifier: link:../displacement-techniques-sandbox/packages/orthozoom
+        version: link:../displacement-techniques-sandbox/packages/orthozoom
       ramda:
         specifier: ^0.28.0
         version: 0.28.0

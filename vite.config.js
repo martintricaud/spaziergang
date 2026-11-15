@@ -8,6 +8,8 @@ export default defineConfig(({ command, mode }) => {
     plugins: [svelte()],
     /** hydra-synth's bundled dependencies reference the Node global object. */
     define: { global: 'globalThis' },
+    /** The linked packages must use this repository's copy of Svelte; two copies of Svelte's runtime do not share state. */
+    resolve: { dedupe: ['svelte'] },
     base: isProduction ? '/muesli/' : '/',
     build: {
       outDir: 'docs',

@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "moduleResolution": "Node",
+    "moduleResolution": "Bundler",
     "target": "ES2022",
     "module": "ESNext",
     "isolatedModules": true,
@@ -14,6 +14,11 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
+    /**
+     * The packages linked from displacement-techniques-sandbox resolve Svelte from that repository.
+     * These paths make every import of Svelte resolve to this repository's copy, so that Svelte's types are the same on both sides.
+     */
+    "paths": { "svelte": ["./node_modules/svelte"], "svelte/*": ["./node_modules/svelte/*"] },
     /**
      * Typecheck JS in `.svelte` and `.js` files by default.
      * Disable this if you'd like to use dynamic types.
