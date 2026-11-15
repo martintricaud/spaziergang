@@ -67,7 +67,8 @@ input::-webkit-inner-spin-button {
   height: calc(100vh - 2em);
   display: grid;
   grid-template-rows: min-content minmax(0, 1fr);
-  grid-template-columns: max-content minmax(0, 1fr);
+  /* The second column is never narrower than the output's editor and gallery. */
+  grid-template-columns: max-content minmax(min-content, 1fr);
   grid-template-areas:
         "d d"
         "a b";
@@ -98,26 +99,42 @@ input::-webkit-inner-spin-button {
   height: 100%;
 }
 
-/* The editor covers the viewport's grid area: it is drawn over the output and does not scroll with it.
-   Pointer events pass through it to the output, except on its own controls. */
-.code-editor {
+/* The output's container. Its grid holds the editor and the preset gallery; its minimum width is the sum of theirs, so neither overflows it. */
+.output {
   grid-area: b;
   position: relative;
-  z-index: 1;
-  margin: 0.5rem;
-  pointer-events: none;
+  box-sizing: border-box;
+  min-width: min-content;
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(min-content, 1fr) max-content;
+  grid-template-rows: minmax(0, 1fr);
+  column-gap: 0.5rem;
+  padding: 0.5rem;
+  border: 2px solid white;
+  outline: 1px solid black;
+  border-radius: 3px;
+  overflow: hidden;
 }
 
-.code-editor>* {
-  pointer-events: auto;
+/* The editor's text area is at the top of its column and its buttons at the bottom. The buttons are in the flow so that they count in the column's minimum width. */
+.code-editor {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: min-content;
+  min-height: 0;
 }
 
 .code-editor>textarea {
   display: block;
   box-sizing: border-box;
-  /* The right-hand 150px of the viewport hold the preset gallery. */
-  width: min(60ch, calc(100% - 150px - 0.5rem));
-  max-height: calc(100% - 3rem);
+  width: 100%;
+  min-width: 30ch;
+  max-width: 60ch;
+  flex: 0 1 auto;
+  min-height: 3rem;
   resize: vertical;
   padding: 0.5rem;
   border: 1px solid black;
@@ -130,11 +147,11 @@ input::-webkit-inner-spin-button {
   user-select: text;
 }
 
-/* The reset and evaluate buttons stay at the bottom of the viewport. */
+/* The reset and evaluate buttons stay at the bottom of the output. */
 .code-actions {
-  position: absolute;
-  bottom: 0;
-  left: 0;
+  order: 1;
+  margin-top: auto;
+  flex: none;
   display: flex;
   column-gap: 1ch;
   align-items: baseline;
@@ -160,13 +177,10 @@ input::-webkit-inner-spin-button {
 }
 
 
+/* The canvas's box fills the output's container, behind the editor and the gallery. */
 .viewport {
-  grid-area: b;
-  height: 100%;
-  border: 2px solid white;
-  outline: 1px solid black;
-  border-radius: 3px;
-  overflow: hidden;
+  position: absolute;
+  inset: 0;
   z-index: -1;
 }
 /* The output fills the viewport and keeps its proportions: the part that exceeds the viewport is cropped. */
@@ -180,15 +194,9 @@ input::-webkit-inner-spin-button {
 }
 
 .snapshots {
-
-  /* The gallery shares the viewport's grid area: it is drawn over the right edge of the output. */
-  grid-area: b;
-  justify-self: end;
   align-self: start;
-  z-index: 1;
   box-sizing: border-box;
-  max-height: calc(100% - 1rem);
-  margin: 0.5rem;
+  max-height: 100%;
   display: flex;
   flex-direction: column;
   row-gap: 0.5rem;
@@ -203,6 +211,12 @@ input::-webkit-inner-spin-button {
 .snapshots>button,
 .code-actions>button {
   background-color: rgba(240, 240, 240, 0.7);
+}
+
+/* A button's label stays on one line, so the two buttons set the editor's minimum width. */
+.code-actions>button {
+  flex: none;
+  white-space: nowrap;
 }
 
 .snapshots.collapsed>label {

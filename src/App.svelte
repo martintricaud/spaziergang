@@ -312,36 +312,6 @@
 />
 <!-- Text can be selected only with the plain cursor: with an instrument, a drag must not select text. -->
 <main class="grid" class:no-selection={equipped !== 'cursor'} id="main">
-  <!-- The gallery shares the viewport's grid area and is drawn over its right edge. -->
-  <div class="snapshots" class:collapsed={presetsCollapsed}>
-    <!-- The button gives up the focus so that the space bar, which opens the palette, does not click it. -->
-    <button
-      id="toggle-presets"
-      aria-expanded={!presetsCollapsed}
-      on:click={(ev) => {
-        presetsCollapsed = !presetsCollapsed;
-        ev.currentTarget.blur();
-      }}><u>{presetsCollapsed ? 'show presets' : 'hide presets'}</u></button
-    >
-    <button id="save" data-path="" on:click={() => save_handler()}><u>save</u></button>
-    {#each $Templates as { templateName, presetName, code, inputSpace }, i}
-      <label
-        class:hidden={templateName != SelectedTemplate}
-        class="erasable canvas {ff}"
-        data-index={i}
-      >
-        <input type="radio" bind:group={SelectedExample} value={i} />
-        <span>{presetName}</span>
-        <HydraViewer
-          {code}
-          values={mapValues(fromEntries(inputSpace ?? []), prop('a'))}
-          w={150}
-          h={150}
-          autoloop={false}
-        />
-      </label>
-    {/each}
-  </div>
   <div class="ui">
     {#if SelectedUI != 'default'}
       <ul class="sliders macro">
@@ -408,23 +378,54 @@
       {/each}
     </ul>
   </div>
-  <div class="viewport">
-    <HydraViewer
-      code={viewerCode}
-      values={$Inputs}
-      w={1000}
-      h={1000}
-      autoloop={true}
-      on:evaluated={evaluated_handler}
+  <!-- The output: the canvas fills this container; the editor and the preset gallery are the two columns of its grid, drawn over the canvas. -->
+  <div class="output">
+    <div class="viewport">
+      <HydraViewer
+        code={viewerCode}
+        values={$Inputs}
+        w={1000}
+        h={1000}
+        autoloop={true}
+        on:evaluated={evaluated_handler}
+      />
+    </div>
+    <CodeEditor
+      code={$Templates[SelectedExample].code}
+      original={examples.find((t) => t.templateName === SelectedTemplate).code}
+      error={codeError}
+      on:evaluate={(ev) => (submitted = ev.detail)}
     />
+    <div class="snapshots" class:collapsed={presetsCollapsed}>
+      <!-- The button gives up the focus so that the space bar, which opens the palette, does not click it. -->
+      <button
+        id="toggle-presets"
+        aria-expanded={!presetsCollapsed}
+        on:click={(ev) => {
+          presetsCollapsed = !presetsCollapsed;
+          ev.currentTarget.blur();
+        }}><u>{presetsCollapsed ? 'show presets' : 'hide presets'}</u></button
+      >
+      <button id="save" data-path="" on:click={() => save_handler()}><u>save</u></button>
+      {#each $Templates as { templateName, presetName, code, inputSpace }, i}
+        <label
+          class:hidden={templateName != SelectedTemplate}
+          class="erasable canvas {ff}"
+          data-index={i}
+        >
+          <input type="radio" bind:group={SelectedExample} value={i} />
+          <span>{presetName}</span>
+          <HydraViewer
+            {code}
+            values={mapValues(fromEntries(inputSpace ?? []), prop('a'))}
+            w={150}
+            h={150}
+            autoloop={false}
+          />
+        </label>
+      {/each}
+    </div>
   </div>
-  <!-- The editor shares the viewport's grid area and is drawn over it. -->
-  <CodeEditor
-    code={$Templates[SelectedExample].code}
-    original={examples.find((t) => t.templateName === SelectedTemplate).code}
-    error={codeError}
-    on:evaluate={(ev) => (submitted = ev.detail)}
-  />
   <div style="width: 100vw; background: none; position: absolute; z-index: 1000; top:0; left:0">
     <div
       class:hidden={!hidden}
