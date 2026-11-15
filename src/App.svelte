@@ -26,12 +26,14 @@
     unique,
   } from 'remeda';
   import HydraViewer from './components/HydraViewer.svelte';
+  import CodeEditor from './components/CodeEditor.svelte';
   import ILever from './components/ILever.svelte';
   import IFix from './components/IFix.svelte';
   import IEraser from './components/IEraser.svelte';
   import IZoom from './components/IZoom.svelte';
   import { EventStore, UIOptions } from './lib/UIState';
   import { Table } from './lib/hydra-runtime';
+  import { deriveInputSpace, rewrite } from './lib/hydra-rewrite';
 
   /** Initialize a store containing the example presets*/
   const Templates = writable(examples);
@@ -95,6 +97,18 @@
     $Templates[SelectedExample],
     $Table,
   );
+
+  /** Text sent from the editor that the main viewer has not yet evaluated without error. The selected preset changes only after a successful evaluation. */
+  let submitted;
+  /** Message of the last parse or evaluation error of the main viewer. */
+  let codeError = '';
+  /** Selecting another preset discards a text that failed to evaluate. */
+  $: clear_submitted(SelectedExample);
+  $: viewerCode = submitted ?? $Templates[SelectedExample].code;
+
+  function clear_submitted(_) {
+    submitted = undefined;
+  }
 
   /** EFFECTFUL FUNCTIONS modify reactive values, can be thought of has handlers */
 
@@ -166,6 +180,40 @@
     Templates.update((templates) => [...templates, toAdd]);
     /** Shift the focus of SelectedExample to the newly saved preset*/
     SelectedExample = findLastIndex($Templates, (t) => t.templateName === SelectedTemplate);
+  }
+
+  /** Handles the result of each evaluation in the main viewer. After an error, the previous chain stays on screen and the preset is unchanged. */
+  function evaluated_handler(ev) {
+    if ('error' in ev.detail) {
+      codeError = ev.detail.error;
+      return;
+    }
+    codeError = '';
+    if (submitted !== undefined) {
+      commit_code(submitted, ev.detail.params);
+      submitted = undefined;
+    }
+  }
+
+  /** Stores an evaluated text in the selected preset and derives its input space again. A parameter keeps its fields; one whose literal was edited takes the new literal as value. */
+  function commit_code(code, params) {
+    const current = $Templates[SelectedExample];
+    const before = rewrite(current.code, $Table).params;
+    const literals = fromEntries(map(before, (p) => [p.key, p.value]));
+    const changed = new Set(
+      params.filter((p) => p.key in literals && literals[p.key] !== p.value).map((p) => p.key),
+    );
+    const sameKeys =
+      params.length === before.length && params.every((p, i) => p.key === before[i].key);
+    const edited = {
+      ...current,
+      code,
+      inputSpace: deriveInputSpace(params, $InputSpace, current.ranges, changed),
+      /** A Hilbert index is valid for one list of parameters only; without it the store starts at the midpoint. */
+      h_global: sameKeys ? $H_global : undefined,
+      h_local: sameKeys ? $H_local : undefined,
+    };
+    Templates.update((templates) => map(templates, (t, i) => (i === SelectedExample ? edited : t)));
   }
 
   function equip_effect(name) {
@@ -252,6 +300,12 @@
     {/each}
   </div>
   <div class="ui">
+    <CodeEditor
+      code={$Templates[SelectedExample].code}
+      original={examples.find((t) => t.templateName === SelectedTemplate).code}
+      error={codeError}
+      on:evaluate={(ev) => (submitted = ev.detail)}
+    />
     {#if SelectedUI != 'default'}
       <ul class="sliders macro">
         <li class="macro slider-grid">
@@ -319,11 +373,12 @@
   </div>
   <div class="viewport">
     <HydraViewer
-      code={$Templates[SelectedExample].code}
+      code={viewerCode}
       values={$Inputs}
       w={1000}
       h={1000}
       autoloop={true}
+      on:evaluated={evaluated_handler}
     />
   </div>
   <div style="width: 100vw; background: none; position: absolute; z-index: 1000; top:0; left:0">
