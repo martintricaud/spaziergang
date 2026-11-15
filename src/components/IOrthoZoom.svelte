@@ -41,17 +41,14 @@
       .elementsFromPoint(ev.x, ev.y)
       .find((x) => x.classList.contains('thumb') || x.classList.contains('range'));
     const track = held?.closest('.track')?.getBoundingClientRect();
+    const chart = track
+      ? linearChart([0, steps(held.getAttribute('data-store'))], [track.left, track.right])
+      : null;
+    /** The target's value, in steps, is read from the position of the held element's centre on the track. */
+    const box = held?.getBoundingClientRect();
     feed({
       kind: 'press',
-      target: track
-        ? {
-            chart: linearChart(
-              [0, steps(held.getAttribute('data-store'))],
-              [track.left, track.right],
-            ),
-            value: 0,
-          }
-        : null,
+      target: chart ? { chart, value: chart.fromPixel(box.left + box.width / 2) } : null,
     });
     if (!track) held = undefined;
     /** Without this, the browser treats the press and the drag that follows as the start of a text selection and shows the text cursor. */
