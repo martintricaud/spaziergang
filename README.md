@@ -52,15 +52,15 @@ Edit the file to add more templates and presets.
 
 ## Running locally
 
-The project uses Yarn and Vite. Node 20.19 or later is required.
+The project uses pnpm and Vite. Node 20.19 or later is required.
 
 ```sh
-yarn install
-yarn dev      # development server
-yarn check    # svelte-check: type errors and Svelte warnings
-yarn test     # node:test: the Hilbert transforms in src/lib/hilbert.ts
-yarn format   # prettier
-yarn build    # production build, written to docs/ for GitHub Pages
+pnpm install
+pnpm dev      # development server
+pnpm check    # svelte-check: type errors and Svelte warnings
+pnpm test     # vitest: the Hilbert transforms in src/lib/hilbert.ts
+pnpm format   # prettier
+pnpm build    # production build, written to docs/ for GitHub Pages
 ```
 
 The Hilbert-curve transforms are implemented in `src/lib/hilbert.ts` on native BigInt, and pinned by `test/hilbert.test.ts`.
