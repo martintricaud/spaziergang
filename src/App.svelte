@@ -31,6 +31,7 @@
   import IEraser from './components/IEraser.svelte';
   import IZoom from './components/IZoom.svelte';
   import { EventStore, UIOptions } from './lib/UIState';
+  import { Table } from './lib/hydra-runtime';
 
   /** Initialize a store containing the example presets*/
   const Templates = writable(examples);
@@ -89,8 +90,10 @@
   /** reactive value that returns the feedforward style for the selected instrument */
   $: ff = instruments[equipped].ff;
 
+  /** The stores are rebuilt when the selected preset changes, and once when the first renderer publishes hydra's function table. */
   $: [H_global, H_local, InputSpace, Bits, Unlocked, Inputs, MaxH] = MuesliStore(
     $Templates[SelectedExample],
+    $Table,
   );
 
   /** EFFECTFUL FUNCTIONS modify reactive values, can be thought of has handlers */
@@ -157,7 +160,7 @@
       inputSpace: entries($InputSpace),
       h_local: $H_local,
       h_global: $H_global,
-      synth: $Templates[SelectedExample].synth,
+      code: $Templates[SelectedExample].code,
     };
     /** Add the new example at the end of the Template array store */
     Templates.update((templates) => [...templates, toAdd]);
@@ -230,7 +233,7 @@
 <main class="grid" id="main">
   <div class="snapshots">
     <button id="save" data-path="" on:click={() => save_handler()}><u>save</u></button>
-    {#each $Templates as { templateName, presetName, synth, inputSpace, h_global, h_local }, i}
+    {#each $Templates as { templateName, presetName, code, inputSpace }, i}
       <label
         class:hidden={templateName != SelectedTemplate}
         class="erasable canvas {ff}"
@@ -239,8 +242,8 @@
         <input type="radio" bind:group={SelectedExample} value={i} />
         <span>{presetName}</span>
         <HydraViewer
-          {synth}
-          data={mapValues(fromEntries(inputSpace), prop('a'))}
+          {code}
+          values={mapValues(fromEntries(inputSpace ?? []), prop('a'))}
           w={150}
           h={150}
           autoloop={false}
@@ -316,8 +319,8 @@
   </div>
   <div class="viewport">
     <HydraViewer
-      synth={$Templates[SelectedExample].synth}
-      data={$Inputs}
+      code={$Templates[SelectedExample].code}
+      values={$Inputs}
       w={1000}
       h={1000}
       autoloop={true}

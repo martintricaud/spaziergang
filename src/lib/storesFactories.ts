@@ -4,6 +4,9 @@ import * as R from 'ramda';
 import { constant, filter, fromEntries, map, mapValues, merge, pick, prop } from 'remeda';
 import * as U from './utils';
 import { forward, inverse } from './hilbert';
+import { deriveInputSpace, rewrite } from './hydra-rewrite';
+import type { FunctionTable, ParamFields } from './hydra-rewrite';
+import type { Template } from './data';
 import { constraintsPreset } from './constraints';
 import * as vec from './vec';
 
@@ -18,7 +21,7 @@ type P<T> = Record<string, T>; //record with fields of type t
 
 /** The parameter store: a writable record of parameter records, plus `evolve`, which applies an evolver through the constraint solver. */
 export interface ParamsStore {
-  subscribe: Readable<P<P<any>>>['subscribe'];
+  subscribe: Readable<Record<string, Required<ParamFields>>>['subscribe'];
   set: (X: P<P<number | boolean>>) => void;
   update: (updater: (value: P<P<any>>) => P<P<any>>) => void;
   evolve: (transformer: P<P<(x: any) => any>>) => void;
@@ -58,13 +61,23 @@ export function liftedConstraintStore(
   ];
 }
 
-export function MuesliStore(data) {
+/**
+ * Builds the stores of one preset. When the preset carries no input space, its parameters are derived from its Hydra source, which needs hydra's function table.
+ * The table is undefined until the first renderer exists; the input space is empty until then.
+ */
+export function MuesliStore(data: Template, table?: FunctionTable) {
   // B = bits per dimensions, P = parameters, K = Keys, HF = Hilbert Forward, HR = Hilbert Reverse
-  const [Params, Keys] = liftedConstraintStore(data.inputSpace);
+  const inputSpace =
+    data.inputSpace ??
+    (table ? deriveInputSpace(rewrite(data.code, table).params, {}, data.ranges) : []);
+  /** The parameter store completes each record in place, so it receives copies. */
+  const [Params, Keys] = liftedConstraintStore(
+    inputSpace.map(([key, fields]) => [key, { ...fields }]),
+  );
   const Bits: Writable<number> = writable(32);
   const Unlocked = derived([Keys, Params], ([$K, $P]) => filter($K, (x: string) => !$P[x].locked));
   const MaxH = derived([Unlocked, Bits], ([$U, $B]) => (1n << BigInt($U.length * $B)) - 1n);
-  let $Params, $Bits: number, $Unlocked: Array<string>, $H_global, $H_local, $MaxH;
+  let $Params, $Bits: number, $Unlocked: Array<string>, $H_global, $H_local, $MaxH: bigint;
 
   Bits.subscribe((b: number) => {
     $Bits = b;
@@ -80,9 +93,10 @@ export function MuesliStore(data) {
   });
 
   //initialize Hilbert indices to half of their max values if they aren't declared in the "data" argument
-  data.h_local ??= U.prod(0.5, $MaxH, 9);
-  data.h_global ??= U.prod(0.5, $MaxH, 9);
-  const [H_local, H_global] = [writable(data.h_local), writable(data.h_global)];
+  const [H_local, H_global] = [
+    writable<bigint>(data.h_local ?? U.prod(0.5, $MaxH, 9)),
+    writable<bigint>(data.h_global ?? U.prod(0.5, $MaxH, 9)),
+  ];
 
   H_global.subscribe((h) => {
     $H_global = h;

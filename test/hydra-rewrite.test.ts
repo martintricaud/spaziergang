@@ -175,3 +175,64 @@ describe('deriveInputSpace', () => {
     assert.deepEqual(space[2][1], { c0: 0, c1: 0.2, a: 0.2, locked: false });
   });
 });
+
+describe('templates', () => {
+  /** hydra's table as the renderer builds it: `combine` and `combineCoord` functions get the implicit source argument first. */
+  const hydraTable = async (): Promise<FunctionTable> => {
+    const path = '../node_modules/hydra-synth/src/glsl/glsl-functions.js';
+    const functions: Array<{
+      name: string;
+      type: string;
+      inputs: FunctionTable[string]['inputs'];
+    }> = (await import(/* @vite-ignore */ path)).default();
+    return Object.fromEntries(
+      functions.map((f) => [
+        f.name,
+        {
+          type: f.type,
+          inputs: f.type.startsWith('combine')
+            ? [{ type: 'vec4', name: 'color' }, ...f.inputs]
+            : f.inputs,
+        },
+      ]),
+    );
+  };
+
+  test('every template parses, its ranges name derived keys, and its Hilbert indices fit its parameter count', async () => {
+    const { examples } = await import('../src/lib/data');
+    const { rescale } = await import('../src/lib/hilbert');
+    const full = await hydraTable();
+    for (const template of examples) {
+      const derived = rewrite(template.code, full).params.map((p) => p.key);
+      assert.ok(derived.length > 0, template.templateName);
+      assert.equal(
+        new Set(derived).size,
+        derived.length,
+        `${template.templateName}: duplicate key`,
+      );
+      for (const key of Object.keys(template.ranges ?? {})) {
+        assert.ok(derived.includes(key), `${template.templateName}: ${key} is not a derived key`);
+      }
+      for (const [key, fields] of deriveInputSpace(
+        rewrite(template.code, full).params,
+        {},
+        template.ranges,
+      )) {
+        assert.ok(
+          fields.c0 <= fields.a && fields.a <= fields.c1,
+          `${template.templateName}: ${key} outside its range`,
+        );
+      }
+      if (template.h_global !== undefined) {
+        assert.ok(
+          Math.abs(rescale(template.h_global, 32, derived.length) - 0.1) < 1e-6,
+          template.templateName,
+        );
+        assert.ok(
+          Math.abs(rescale(template.h_local!, 32, derived.length) - 0.5) < 1e-6,
+          template.templateName,
+        );
+      }
+    }
+  });
+});
