@@ -1,21 +1,13 @@
 import { writable, derived } from 'svelte/store';
 import type { Writable, Readable } from 'svelte/store';
 import * as R from 'ramda';
-import { constant, filter, fromEntries, map, mapValues, merge, pick, prop } from 'remeda';
+import { constant, filter, fromEntries, map, mapValues, pick, prop } from 'remeda';
 import * as U from './utils';
 import { forward, inverse } from './hilbert';
 import { deriveInputSpace, rewrite } from './hydra-rewrite';
 import type { FunctionTable, ParamFields } from './hydra-rewrite';
 import type { Template } from './data';
 import { constraintsPreset } from './constraints';
-import * as vec from './vec';
-
-interface Vec {
-  x: number;
-  y: number;
-  movementX: number;
-  movementY: number;
-}
 
 type P<T> = Record<string, T>; //record with fields of type t
 
@@ -153,118 +145,5 @@ export function MuesliStore(data: Template, table?: FunctionTable) {
     Unlocked,
     derived(Params, (params: P<any>) => mapValues(params, prop('a'))),
     MaxH,
-  ] as const;
-}
-
-export function AlignmentStore(P1: Partial<Vec>, P2: Partial<Vec>, P3: Partial<Vec>) {
-  const [A, B, C] = [writable(P1), writable(P2), writable(P3)];
-  const K = writable(P2);
-  const [Shift, Click] = [writable(false), writable(false)];
-  const [AB, AC, BC] = [
-    derived([A, B], ([a, b]) => vec.sub(a, b)),
-    derived([A, C], ([a, c]) => vec.sub(a, c)),
-    derived([B, C], ([b, c]) => vec.sub(b, c)),
-  ];
-  const Target = writable(undefined);
-  let $Shift, $Click, $A, $B, $C, $AB, $AC, $BC, $Target, $K;
-
-  Shift.subscribe((x) => {
-    $Shift = x;
-  });
-  Click.subscribe((x) => {
-    $Click = x;
-  });
-  A.subscribe((x) => {
-    $A = x;
-  });
-  B.subscribe((x) => {
-    $B = x;
-  });
-  C.subscribe((x) => {
-    $C = x;
-  });
-  AB.subscribe((x) => {
-    $AB = x;
-  });
-  AC.subscribe((x) => {
-    $AC = x;
-  });
-  BC.subscribe((x) => {
-    $BC = x;
-  });
-  Target.subscribe((x) => {
-    $Target = x;
-  });
-  K.subscribe((x) => {
-    $K = x;
-  });
-  function ClickSet(value: boolean) {
-    /** retrieve the list of movable elements at B's position */
-    let targetList = document
-      .elementsFromPoint($B.x, $B.y)
-      .filter((x) => x.classList.contains('thumb') || x.classList.contains('range'));
-
-    // let targetList = U.targetAcquisition(document)($B.x, $B.y,x=>U.containsAny(x.classList,["thumb","range"]))
-    /** set target to undefined if targetList is empty */
-    let res = targetList.length > 0 ? targetList[0] : undefined;
-    let rect = res?.getBoundingClientRect();
-
-    /** set TargetStore to res on mouseDown, and to undefined on mouseUp */
-    value
-      ? Target.set({
-          elem: res,
-          offset: {
-            offsetX: $B.x - rect?.x - rect?.width / 2,
-            offsetY: $B.y - rect?.y - rect?.height / 2,
-          },
-        })
-      : Target.set(undefined);
-
-    /** set Click to true on mouseDown, and to false on mouseUp */
-    Click.set(value);
-    K.set($B);
-  }
-  function ASet(v: any) {
-    AUpdate((a) => merge(a, v));
-  }
-
-  function AUpdate(u) {
-    if ($Click) {
-      if ($Shift) {
-        A.set(vec.projectXAB(u($A), $A, $C));
-      } else {
-        A.update(u);
-        let Bnew =
-          Math.abs($AC.y) - 0.01 > Math.abs($C.y - $K.y)
-            ? {
-                x: (($K.y - $C.y) * $AC.x) / $AC.y + $C.x,
-                y: $K.y,
-              }
-            : vec.add($A, vec.scale(0.01, $AC));
-        B.update((b) => merge(b, Bnew));
-      }
-    } else {
-      if ($Shift) {
-        let u3 = $AC;
-        A.update(u);
-        let newC =
-          vec.norm($AB) >= vec.norm($AC) + 0.01
-            ? vec.add($B, vec.setNorm(0.01, $AB))
-            : vec.add($A, vec.setNorm(vec.norm(u3), $AB));
-        C.set(newC);
-      } else {
-        let [u2, u3] = [$AB, $AC];
-        A.update(u);
-        B.set(vec.add($A, u2));
-        C.set(vec.add($A, u3));
-      }
-    }
-  }
-
-  return [
-    { subscribe: A.subscribe, set: ASet, update: AUpdate },
-    { subscribe: B.subscribe, set: ClickSet },
-    { subscribe: C.subscribe, set: Shift.set },
-    { subscribe: Target.subscribe },
   ] as const;
 }

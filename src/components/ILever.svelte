@@ -1,35 +1,52 @@
 <script>
     import { createEventDispatcher } from 'svelte';
-    import { merge, pick } from 'remeda';
-    import { AlignmentStore } from '../lib/storesFactories';
+    import { writable } from 'svelte/store';
+    import { merge } from 'remeda';
+    import { init, move, press, shift, setNorm, sub } from 'archie';
     import { EventStore } from '../lib/UIState';
     export let name, equipped;
-    import * as vec from '../lib/vec';
 
     //dispatcher that will make the instrument "observable"
-    //function isMovable = R.filter(val=>val.dataset)
     const dispatch = createEventDispatcher();
 
-    /** Initialize a lever made of three points with alignment constraints */
-    const [P1, P2, P3, Target] = AlignmentStore(
-        { x: 0, y: 0, movementX: 0, movementY: 0 },
-        { x: 0, y: 0 - 10, movementX: 0, movementY: 0 },
-        { x: 0, y: 0 - 50, movementX: 0, movementY: 0 }
-    );
+    /** The lever's state: A is the handle (the pointer), B the selector, C the pivot. */
+    const Lever = writable(init());
+    /** The element held since the last press and the selector's offset from its centre; undefined when no button is down. */
+    const Target = writable(undefined);
 
-    /** P1 is constrained by the main EventStore, i.e. it is updated at every movement of the mouse*/
-    $: P1.set(pick($EventStore, ['x', 'y', 'movementX', 'movementY']));
+    /** The handle follows the pointer at every movement of the mouse. */
+    $: Lever.update((s) => move(s, { x: $EventStore.x, y: $EventStore.y }));
+    $: ({ A, B, C } = $Lever);
 
-    $: ortho = {
-        x: vec.unit(vec.sub($P3, $P1)).y,
-        y: -vec.unit(vec.sub($P3, $P1)).x,
-    };
+    /** On press, the held element is the topmost thumb or range under the selector. */
+    function setPress(down) {
+        const elem = document
+            .elementsFromPoint(B.x, B.y)
+            .find((x) => x.classList.contains('thumb') || x.classList.contains('range'));
+        const rect = elem?.getBoundingClientRect();
+        Target.set(
+            down
+                ? {
+                      elem,
+                      offset: {
+                          offsetX: B.x - rect?.x - rect?.width / 2,
+                          offsetY: B.y - rect?.y - rect?.height / 2,
+                      },
+                  }
+                : undefined,
+        );
+        Lever.update((s) => press(s, down));
+    }
+
+    /** Unit vector along the lever, turned by a quarter turn; it offsets the white line that outlines the lever. */
+    $: along = setNorm(1, sub(C, A));
+    $: ortho = { x: along.y, y: -along.x };
     $: if (equipped) {
         let effectValue = {
             targetPath: $Target?.elem?.dataset?.path,
             targetStore: $Target?.elem?.dataset?.store,
             offset: $Target?.offset,
-            P2: $P2,
+            P2: B,
         };
         if ($Target?.elem != undefined) {
             dispatch('effect', merge($EventStore, effectValue));
@@ -40,22 +57,22 @@
 <svelte:window
     on:mousedown={(ev) => {
         if (equipped) {
-            P2.set(true);
+            setPress(true);
         }
     }}
     on:mouseup={(ev) => {
         if (equipped) {
-            P2.set(false);
+            setPress(false);
         }
     }}
     on:keydown={(ev) => {
         if (equipped && ev.shiftKey) {
-            P3.set(true);
+            Lever.update((s) => shift(s, true));
         }
     }}
     on:keyup={(ev) => {
         if (equipped && !ev.shiftKey) {
-            P3.set(false);
+            Lever.update((s) => shift(s, false));
         }
     }}
 />
@@ -68,18 +85,18 @@
     height="100vh"
 >
     <line
-        x1="{$P3.x + 2 * ortho.x}px"
-        y1="{$P3.y + 2 * ortho.y}px"
-        x2="{$P1.x + 2 * ortho.x}px"
-        y2="{$P1.y + 2 * ortho.y}px"
+        x1="{C.x + 2 * ortho.x}px"
+        y1="{C.y + 2 * ortho.y}px"
+        x2="{A.x + 2 * ortho.x}px"
+        y2="{A.y + 2 * ortho.y}px"
         stroke="white"
         stroke-width="2px"
     />
     <line
-        x1="{$P3.x}px"
-        y1="{$P3.y}px"
-        x2="{$P1.x}px"
-        y2="{$P1.y}px"
+        x1="{C.x}px"
+        y1="{C.y}px"
+        x2="{A.x}px"
+        y2="{A.y}px"
         stroke="black"
         stroke-width="1px"
     />
@@ -87,17 +104,17 @@
 <!-- <div
     class:inactive={!equipped}
     class="round red"
-    style="left:{$P1.x}px; top:{$P1.y}px; position:fixed; "
+    style="left:{A.x}px; top:{A.y}px; position:fixed; "
 /> -->
 <div
     class:inactive={!equipped}
     class="round green"
-    style="left:{$P2.x}px; top:{$P2.y}px; position:fixed; "
+    style="left:{B.x}px; top:{B.y}px; position:fixed; "
 ></div>
 <div
     class:inactive={!equipped}
     class="round blue"
-    style="left:{$P3.x}px; top:{$P3.y}px; position:fixed;  "
+    style="left:{C.x}px; top:{C.y}px; position:fixed;  "
 ></div>
 
 <style>
