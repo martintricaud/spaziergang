@@ -30,7 +30,7 @@
   import ILever from './components/ILever.svelte';
   import IFix from './components/IFix.svelte';
   import IEraser from './components/IEraser.svelte';
-  import IZoom from './components/IZoom.svelte';
+  import IResize from './components/IResize.svelte';
   import { EventStore, UIOptions } from './lib/UIState';
   import { Table } from './lib/hydra-runtime';
   import { deriveInputSpace, rewrite } from './lib/hydra-rewrite';
@@ -77,10 +77,10 @@
       ff: 'willErase',
       effect: erase_effect,
     },
-    zoom: {
-      name: 'zoom',
+    resize: {
+      name: 'resize',
       equipped: false,
-      component: IZoom,
+      component: IResize,
       ff: '',
       effect: wheel_effect,
     },
@@ -300,12 +300,6 @@
     {/each}
   </div>
   <div class="ui">
-    <CodeEditor
-      code={$Templates[SelectedExample].code}
-      original={examples.find((t) => t.templateName === SelectedTemplate).code}
-      error={codeError}
-      on:evaluate={(ev) => (submitted = ev.detail)}
-    />
     {#if SelectedUI != 'default'}
       <ul class="sliders macro">
         <li class="macro slider-grid">
@@ -381,6 +375,13 @@
       on:evaluated={evaluated_handler}
     />
   </div>
+  <!-- The editor shares the viewport's grid area and is drawn over it. -->
+  <CodeEditor
+    code={$Templates[SelectedExample].code}
+    original={examples.find((t) => t.templateName === SelectedTemplate).code}
+    error={codeError}
+    on:evaluate={(ev) => (submitted = ev.detail)}
+  />
   <div style="width: 100vw; background: none; position: absolute; z-index: 1000; top:0; left:0">
     <div
       class:hidden={!hidden}
