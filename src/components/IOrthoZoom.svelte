@@ -93,7 +93,7 @@
 <svg
   class:inactive={!equipped}
   aria-label={name}
-  style="position:absolute; top:0; left:0; pointer-events:none"
+  style="position:fixed; top:0; left:0; pointer-events:none"
   width="100vw"
   height="100vh"
 >
