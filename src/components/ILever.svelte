@@ -38,6 +38,13 @@
         Lever.update((s) => press(s, down));
     }
 
+    /** The left edge and the width of the area in which the held element is positioned: its track without the borders. It is read at every effect, so a change of layout cannot make it stale. */
+    function trackOf(elem) {
+        const track = elem?.closest('.track');
+        if (!track) return undefined;
+        return { left: track.getBoundingClientRect().left + track.clientLeft, width: track.clientWidth };
+    }
+
     /** Unit vector along the lever, turned by a quarter turn; it offsets the white line that outlines the lever. */
     $: along = setNorm(1, sub(C, A));
     $: ortho = { x: along.y, y: -along.x };
@@ -47,6 +54,7 @@
             targetStore: $Target?.elem?.dataset?.store,
             offset: $Target?.offset,
             P2: B,
+            track: trackOf($Target?.elem),
         };
         if ($Target?.elem != undefined) {
             dispatch('effect', merge($EventStore, effectValue));

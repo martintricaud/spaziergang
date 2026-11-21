@@ -1,6 +1,5 @@
 <script>
   import { writable, derived } from 'svelte/store';
-  import { onMount } from 'svelte';
   import { MuesliStore } from './lib/storesFactories';
   import { rescale } from './lib/hilbert';
   import { examples } from './lib/data';
@@ -45,7 +44,7 @@
   /** By default, the selected example is the first that matches the selected template's name*/
   let SelectedExample = findIndex($Templates, (t) => t.templateName === SelectedTemplate);
 
-  let ih, track_w, trackOffsetX, hidden, SelectedUI;
+  let ih, track_w, hidden, SelectedUI;
   /** True when the preset gallery shows only its buttons. */
   let presetsCollapsed = false;
 
@@ -135,10 +134,10 @@
   }
 
   function lever_effect(ev) {
-    let [P2, offset] = [ev.detail.P2, ev.detail.offset];
+    let [P2, offset, track] = [ev.detail.P2, ev.detail.offset, ev.detail.track];
     let [key, field] = U.stringToPath(ev.detail.targetPath);
     /** partial evaluation of the curried lerp function, where only the arguments representing the target range remain exposed */
-    let lerpTo = U.lerp(trackOffsetX, trackOffsetX + track_w, R.__, R.__, P2.x - offset.offsetX);
+    let lerpTo = U.lerp(track.left, track.left + track.width, R.__, R.__, P2.x - offset.offsetX);
     if (ev.detail.targetStore == 0) {
       H_global.set(lerpTo(0n, $MaxH));
     } else if (ev.detail.targetStore == 1) {
@@ -277,10 +276,6 @@
   function feedback(e) {
     instruments[equipped] = addProp(instruments[equipped], 'ev', e);
   }
-
-  onMount(() => {
-    trackOffsetX = document.getElementsByClassName('track')[0].getBoundingClientRect().left;
-  });
 </script>
 
 <svelte:window
@@ -303,11 +298,6 @@
     feedback(ev);
     EventStore.update((state) => merge(state, pick(ev, ['x', 'y', 'movementX', 'movementY'])));
   }}
-  on:resize={(ev) => {
-    /** this is ugly but Svelte doesn't have a convenient way to bind to an element's absolute Offset width */
-    let val = document.getElementsByClassName('track')[0].getBoundingClientRect().left;
-    trackOffsetX = val;
-  }}
   on:wheel={(ev) => wheel_effect(ev)}
 />
 <!-- Text can be selected only with the plain cursor: with an instrument, a drag must not select text. -->
@@ -324,7 +314,7 @@
               data-store="0"
               data-path="h b"
               data-test
-              style="left:{rescale($H_global, $Bits, $Unlocked.length) * track_w - 3}px"
+              style="left:{rescale($H_global, $Bits, $Unlocked.length) * track_w - 5}px"
             ></div>
           </div>
           <div>max</div>
@@ -337,7 +327,7 @@
               data-store="1"
               data-path="h a"
               class="unlocked thumb"
-              style="left:{rescale($H_local, $Bits, $Unlocked.length) * track_w - 3}px"
+              style="left:{rescale($H_local, $Bits, $Unlocked.length) * track_w - 5}px"
             ></div>
           </div>
           <div>max</div>
