@@ -118,11 +118,12 @@
 ></div>
 
 <style>
+    /* The circle is 10px wide with its border, so an offset of -5px centres it on the point. */
     .round:after {
         content: '';
         position: absolute;
-        top: -4px;
-        left: -4px;
+        top: -5px;
+        left: -5px;
         width: 8px;
         height: 8px;
         border-radius: 6px;
