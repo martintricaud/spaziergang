@@ -384,6 +384,7 @@
       code={$Templates[SelectedExample].code}
       original={examples.find((t) => t.templateName === SelectedTemplate).code}
       error={codeError}
+      table={$Table}
       on:evaluate={(ev) => (submitted = ev.detail)}
     />
     <div class="snapshots" class:collapsed={presetsCollapsed}>
