@@ -89,11 +89,11 @@
 
 <svelte:window on:mousemove={move} on:mousedown={press} on:mouseup={release} />
 
-<!-- The package's appearance: a label next to the pointer that shows the zoom while a target is held. -->
+<!-- The package's appearance, drawn while a target is held. It is above the output, so that it stays visible when the pointer is over it. -->
 <svg
   class:inactive={!equipped}
   aria-label={name}
-  style="position:fixed; top:0; left:0; pointer-events:none"
+  style="position:fixed; top:0; left:0; z-index:999; pointer-events:none"
   width="100vw"
   height="100vh"
 >
