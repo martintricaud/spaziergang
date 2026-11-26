@@ -41,7 +41,7 @@ export function evaluate(renderer: RendererLike, code: string): Evaluation {
     const result = rewrite(code, renderer.generator.glslTransforms);
     for (const { key, value } of result.params) renderer.synth.P[key] = value;
     run(renderer, result.code);
-    if (import.meta.env?.DEV) console.log('[muesli] evaluated chain');
+    if (import.meta.env?.DEV) console.log('[spaziergang] evaluated chain');
     return { params: result.params };
   } catch (e) {
     return { error: e instanceof Error ? e.message : String(e) };

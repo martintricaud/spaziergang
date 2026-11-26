@@ -10,7 +10,7 @@ export default defineConfig(({ command, mode }) => {
     define: { global: 'globalThis' },
     /** The linked packages must use this repository's copy of Svelte; two copies of Svelte's runtime do not share state. */
     resolve: { dedupe: ['svelte'] },
-    base: isProduction ? '/muesli/' : '/',
+    base: isProduction ? '/spaziergang/' : '/',
     build: {
       outDir: 'docs',
       target: 'es2020', // Set the target environment here

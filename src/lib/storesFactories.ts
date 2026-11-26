@@ -57,7 +57,7 @@ export function liftedConstraintStore(
  * Builds the stores of one preset. When the preset carries no input space, its parameters are derived from its Hydra source, which needs hydra's function table.
  * The table is undefined until the first renderer exists; the input space is empty until then.
  */
-export function MuesliStore(data: Template, table?: FunctionTable) {
+export function SpaziergangStore(data: Template, table?: FunctionTable) {
   // B = bits per dimensions, P = parameters, K = Keys, HF = Hilbert Forward, HR = Hilbert Reverse
   const inputSpace =
     data.inputSpace ??

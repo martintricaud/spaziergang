@@ -37,7 +37,7 @@
     if (code !== evaluatedCode) {
       evaluatedCode = code;
       const result = evaluate(renderer, code);
-      if ('error' in result) console.error(`[muesli] ${result.error}`);
+      if ('error' in result) console.error(`[spaziergang] ${result.error}`);
       dispatch('evaluated', result);
     }
     syncParams(renderer, values);

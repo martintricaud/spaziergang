@@ -1,6 +1,6 @@
 <script>
   import { writable, derived } from 'svelte/store';
-  import { MuesliStore } from './lib/storesFactories';
+  import { SpaziergangStore } from './lib/storesFactories';
   import { rescale } from './lib/hilbert';
   import { examples } from './lib/data';
   import * as U from './lib/utils';
@@ -105,7 +105,7 @@
   $: ff = instruments[equipped].ff;
 
   /** The stores are rebuilt when the selected preset changes, and once when the first renderer publishes hydra's function table. */
-  $: [H_global, H_local, InputSpace, Bits, Unlocked, Inputs, MaxH] = MuesliStore(
+  $: [H_global, H_local, InputSpace, Bits, Unlocked, Inputs, MaxH] = SpaziergangStore(
     $Templates[SelectedExample],
     $Table,
   );
