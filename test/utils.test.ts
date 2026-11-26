@@ -101,19 +101,18 @@ describe('solve and liftSolve (constraint propagation)', () => {
     assert.equal(out.b, 8);
     assert.equal(out.a, 6);
   });
-  test('z is clamped to the full range, and a keeps its relative position in the window', () => {
+  test('z is clamped to the full range and recentres b', () => {
     const out = U.liftSolve(solver, { p: { z: () => 100 } }, { p: param() }).p;
     assert.equal(out.z, 10);
     assert.equal(out.b, 5);
-    assert.equal(out.a, 7.5);
+    assert.equal(out.a, 6);
   });
   test('shrinking c1 propagates to z, b and a', () => {
     const out = U.liftSolve(solver, { p: { c1: () => 3 } }, { p: param() }).p;
     assert.equal(out.c1, 3);
     assert.equal(out.z, 3);
     assert.equal(out.b, 1.5);
-    /** The window shrinks from [3, 7] to [0, 3]; a stays at three quarters of it. */
-    assert.equal(out.a, 2.25);
+    assert.equal(out.a, 3);
   });
   test('only the parameters named in the evolver are touched', () => {
     const X = { p: param(), q: param() };
