@@ -33,7 +33,7 @@
   import IOrthoZoom from './components/IOrthoZoom.svelte';
   import { EventStore, UIOptions } from './lib/UIState';
   import { Table } from './lib/hydra-runtime';
-  import { deriveInputSpace, rewrite } from './lib/hydra-rewrite';
+  import { deriveInputSpace, formatValue, rewrite, writeLiterals } from './lib/hydra-rewrite';
   import { STEPS_PER_PARAMETER, macroSteps, shiftIndex, shiftValue } from './lib/orthozoom-steps';
 
   /** Initialize a store containing the example presets*/
@@ -117,9 +117,31 @@
   /** Selecting another preset discards a text that failed to evaluate. */
   $: clear_submitted(SelectedExample);
   $: viewerCode = submitted ?? $Templates[SelectedExample].code;
+  /** The text that the editor showed when the user started the submitted text. Its literals tell which literals the user edited. */
+  let submittedBase;
+  /** Incremented when the editor must take `shownCode` even if its text has edits that were not evaluated. */
+  let codeRevision = 0;
+  /** The selected preset's code with each literal showing its slider's current value. The preset's own code is not rewritten at each slider move, because a change of the preset rebuilds the stores. */
+  $: shownCode = shown_code($Templates[SelectedExample].code, $Table, $Inputs, $InputSpace);
 
   function clear_submitted(_) {
     submitted = undefined;
+    codeRevision += 1;
+  }
+
+  function shown_code(code, table, values, space) {
+    if (!table) return code;
+    const format = (key, value) => formatValue(value, space[key].c0, space[key].c1);
+    try {
+      return writeLiterals(
+        code,
+        table,
+        pickBy(values, (_, key) => key in space),
+        format,
+      );
+    } catch {
+      return code;
+    }
   }
 
   /** EFFECTFUL FUNCTIONS modify reactive values, can be thought of has handlers */
@@ -205,7 +227,7 @@
       inputSpace: entries($InputSpace),
       h_local: $H_local,
       h_global: $H_global,
-      code: $Templates[SelectedExample].code,
+      code: shownCode,
     };
     /** Add the new example at the end of the Template array store */
     Templates.update((templates) => [...templates, toAdd]);
@@ -221,15 +243,17 @@
     }
     codeError = '';
     if (submitted !== undefined) {
-      commit_code(submitted, ev.detail.params);
+      commit_code(submitted, ev.detail.params, submittedBase);
       submitted = undefined;
+      codeRevision += 1;
     }
   }
 
   /** Stores an evaluated text in the selected preset and derives its input space again. A parameter keeps its fields; one whose literal was edited takes the new literal as value. */
-  function commit_code(code, params) {
+  function commit_code(code, params, base) {
     const current = $Templates[SelectedExample];
-    const before = rewrite(current.code, $Table).params;
+    /** An edit is detected against the text that the editor showed, whose literals follow the sliders. */
+    const before = rewrite(base ?? current.code, $Table).params;
     const literals = fromEntries(map(before, (p) => [p.key, p.value]));
     const changed = new Set(
       params.filter((p) => p.key in literals && literals[p.key] !== p.value).map((p) => p.key),
@@ -381,11 +405,12 @@
       />
     </div>
     <CodeEditor
-      code={$Templates[SelectedExample].code}
+      code={shownCode}
+      revision={codeRevision}
       original={examples.find((t) => t.templateName === SelectedTemplate).code}
       error={codeError}
       table={$Table}
-      on:evaluate={(ev) => (submitted = ev.detail)}
+      on:evaluate={(ev) => ([submitted, submittedBase] = [ev.detail.code, ev.detail.base])}
     />
     <div class="snapshots" class:collapsed={presetsCollapsed}>
       <!-- The button gives up the focus so that the space bar, which opens the palette, does not click it. -->

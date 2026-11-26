@@ -79,11 +79,14 @@ function isVariableRead(id: AnyNode, parent?: AnyNode): boolean {
   return true;
 }
 
-/**
- * Rewrites Hydra source text so that every numeric literal in an argument of a Hydra function reads the parameter record `P`.
- * Returns the rewritten text and the parameters in source order. Throws a `SyntaxError` when the text does not parse.
- */
-export function rewrite(code: string, table: FunctionTable): { code: string; params: Param[] } {
+/** A parameter with the offsets of its literal in the source text. A negative literal includes its minus sign. */
+interface Located extends Param {
+  start: number;
+  end: number;
+}
+
+/** Finds the parameters of `code` and the edits that make each one read the parameter record `P`. Throws a `SyntaxError` when the text does not parse. */
+function analyse(code: string, table: FunctionTable): { edits: Edit[]; params: Located[] } {
   const ast = parse(code, { ecmaVersion: 2022, sourceType: 'script' });
   const isHydraCall = (n: AnyNode): boolean =>
     n.type === 'CallExpression' && Object.hasOwn(table, calleeId(n)?.name ?? '');
@@ -96,7 +99,7 @@ export function rewrite(code: string, table: FunctionTable): { code: string; par
   calls.sort((x, y) => calleeId(x)!.start - calleeId(y)!.start);
 
   const edits: Edit[] = [];
-  const params: Param[] = [];
+  const params: Located[] = [];
   const occurrences: Record<string, number> = {};
 
   for (const call of calls) {
@@ -130,7 +133,7 @@ export function rewrite(code: string, table: FunctionTable): { code: string; par
       literals.forEach((lit, j) => {
         const key = j === 0 ? base : `${base}_${j + 1}`;
         const value: number = lit.type === 'Literal' ? lit.value : -lit.argument.value;
-        params.push({ key, value });
+        params.push({ key, value, start: lit.start, end: lit.end });
         edits.push({ start: lit.start, end: lit.end, text: `P.${key}` });
       });
       props.forEach((id) => edits.push({ start: id.start, end: id.end, text: `__p.${id.name}` }));
@@ -147,11 +150,61 @@ export function rewrite(code: string, table: FunctionTable): { code: string; par
     });
   }
 
-  /** Edits are applied from the end of the text so that earlier offsets stay valid. At one offset, a replacement is applied before an insertion, so the inserted text lands before the replaced text. */
+  return { edits, params };
+}
+
+/** Edits are applied from the end of the text so that earlier offsets stay valid. At one offset, a replacement is applied before an insertion, so the inserted text lands before the replaced text. */
+function applyEdits(code: string, edits: Edit[]): string {
   const ordered = [...edits].sort((x, y) => y.start - x.start || y.end - x.end);
   let out = code;
   for (const e of ordered) out = out.slice(0, e.start) + e.text + out.slice(e.end);
-  return { code: out, params };
+  return out;
+}
+
+/**
+ * Rewrites Hydra source text so that every numeric literal in an argument of a Hydra function reads the parameter record `P`.
+ * Returns the rewritten text and the parameters in source order. Throws a `SyntaxError` when the text does not parse.
+ */
+export function rewrite(code: string, table: FunctionTable): { code: string; params: Param[] } {
+  const { edits, params } = analyse(code, table);
+  return {
+    code: applyEdits(code, edits),
+    params: params.map(({ key, value }) => ({ key, value })),
+  };
+}
+
+/**
+ * Writes a parameter's value as text with a precision of one thousandth of its range [c0, c1], at most 8 decimals, without trailing zeros.
+ * A range of 1 gives 3 decimals; a range of 100 gives 1; a range of 1000 or more gives none.
+ */
+export function formatValue(value: number, c0: number, c1: number): string {
+  const step = Math.abs(c1 - c0) / 1000;
+  const decimals = step > 0 ? Math.min(8, Math.max(0, Math.ceil(-Math.log10(step)))) : 8;
+  /** `Number` removes trailing zeros and turns "-0" into "0". */
+  return String(Number(value.toFixed(decimals)));
+}
+
+/**
+ * Returns `code` with each parameter's literal replaced by the text of its current value. This is the inverse of reading the literals with `rewrite`.
+ * A literal stays as written when it already shows its value at the precision of `format`, so a literal typed with more digits is kept.
+ * A parameter absent from `values` keeps its literal. Throws a `SyntaxError` when the text does not parse.
+ */
+export function writeLiterals(
+  code: string,
+  table: FunctionTable,
+  values: Record<string, number>,
+  format: (key: string, value: number) => string,
+): string {
+  const edits: Edit[] = [];
+  for (const { key, value, start, end } of analyse(code, table).params) {
+    const current = values[key];
+    if (current === undefined || format(key, current) === format(key, value)) continue;
+    const text = format(key, current);
+    /** A negative number directly after a minus sign would read as a decrement (`x--3`). */
+    const guarded = text.startsWith('-') && code[start - 1] === '-' ? `(${text})` : text;
+    edits.push({ start, end, text: guarded });
+  }
+  return applyEdits(code, edits);
 }
 
 /**

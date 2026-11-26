@@ -1,6 +1,6 @@
 import { describe, test } from 'vitest';
 import assert from 'node:assert/strict';
-import { rewrite, deriveInputSpace } from '../src/lib/hydra-rewrite';
+import { rewrite, deriveInputSpace, formatValue, writeLiterals } from '../src/lib/hydra-rewrite';
 import type { FunctionTable } from '../src/lib/hydra-rewrite';
 
 const floats = (...names: string[]) => names.map((name) => ({ type: 'float', name }));
@@ -234,5 +234,75 @@ describe('templates', () => {
         );
       }
     }
+  });
+});
+
+describe('formatValue', () => {
+  test('keeps one thousandth of the range', () => {
+    assert.equal(formatValue(0.123456, 0, 1), '0.123');
+    assert.equal(formatValue(12.3456, 0, 100), '12.3');
+    assert.equal(formatValue(123.456, 0, 1000), '123');
+    assert.equal(formatValue(0.5, 0, 1), '0.5');
+    assert.equal(formatValue(-0.0001, -1, 1), '0');
+  });
+});
+
+describe('writeLiterals', () => {
+  const format = (_key: string, value: number) => formatValue(value, 0, 1);
+
+  test('replaces each literal with the text of its value', () => {
+    assert.equal(
+      writeLiterals(
+        'osc(10, 0.1).rotate(1).out()',
+        table,
+        { osc1_frequency: 0.25, rotate1_angle: 0.5 },
+        format,
+      ),
+      'osc(0.25, 0.1).rotate(0.5).out()',
+    );
+  });
+
+  test('keeps a literal that already shows its value at the written precision', () => {
+    assert.equal(
+      writeLiterals('osc(0.12345).out()', table, { osc1_frequency: 0.12345 }, format),
+      'osc(0.12345).out()',
+    );
+    assert.equal(
+      writeLiterals('osc(0.50).out()', table, { osc1_frequency: 0.5 }, format),
+      'osc(0.50).out()',
+    );
+  });
+
+  test('replaces a negative literal with its sign, and guards a negative value after a minus', () => {
+    assert.equal(
+      writeLiterals('osc(-5).out()', table, { osc1_frequency: 0.5 }, format),
+      'osc(0.5).out()',
+    );
+    assert.equal(
+      writeLiterals('osc(5).out()', table, { osc1_frequency: -0.5 }, format),
+      'osc(-0.5).out()',
+    );
+    assert.equal(
+      writeLiterals(
+        'osc(() => 1-5).out()',
+        table,
+        { osc1_frequency: 1, osc1_frequency_2: -0.5 },
+        format,
+      ),
+      'osc(() => 1-(-0.5)).out()',
+    );
+  });
+
+  test('the written text gives the written values back', () => {
+    const written = writeLiterals(
+      'osc(10, 0.1).out()',
+      table,
+      { osc1_frequency: 0.25, osc1_sync: 0.75 },
+      format,
+    );
+    assert.deepEqual(rewrite(written, table).params, [
+      { key: 'osc1_frequency', value: 0.25 },
+      { key: 'osc1_sync', value: 0.75 },
+    ]);
   });
 });
