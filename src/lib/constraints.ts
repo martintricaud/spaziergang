@@ -42,10 +42,15 @@ export const constraintsPreset = [
   },
   {
     predicate: (obj) => obj.a <= obj.b - obj.z / 2 && obj.a >= obj.b + obj.z / 2,
-    /** The thumb stays inside the range. */
+    /**
+     * The thumb stays inside the range. When the range moves without a change of its width and the caller does not move
+     * the thumb, the thumb moves by the same amount as the range, so it keeps its relative position in the range.
+     */
     g: (f, v) => {
+      const [b, z] = [f.b(v.b), f.z(v.z)];
+      const carried = z === v.z && b !== v.b && f.a(v.a) === v.a;
       return {
-        a: (x) => clamp(x, { min: f.b(v.b) - f.z(v.z) / 2, max: f.b(v.b) + f.z(v.z) / 2 }),
+        a: (x) => clamp(carried ? v.a + b - v.b : x, { min: b - z / 2, max: b + z / 2 }),
       };
     },
   },

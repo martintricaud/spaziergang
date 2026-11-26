@@ -99,7 +99,8 @@ describe('solve and liftSolve (constraint propagation)', () => {
   test('b is clamped to [c0 + z/2, c1 - z/2] and a follows the moved window', () => {
     const out = U.liftSolve(solver, { p: { b: () => 100 } }, { p: param() }).p;
     assert.equal(out.b, 8);
-    assert.equal(out.a, 6);
+    /** The window moves from [3, 7] to [6, 10], and a moves by the same 3. */
+    assert.equal(out.a, 9);
   });
   test('z is clamped to the full range and recentres b', () => {
     const out = U.liftSolve(solver, { p: { z: () => 100 } }, { p: param() }).p;

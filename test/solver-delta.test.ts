@@ -67,13 +67,21 @@ describe('a change of the width of the range', () => {
 });
 
 describe('a move of the range without a change of its width', () => {
-  test('moves the thumb only when an end of the range reaches it', () => {
-    const Q = { k: { c0: 0, c1: 10, z: 4, b: 5, a: 6, locked: false } };
-    const near = U.liftSolve(solve, { k: { b: (x: number) => x + 0.5 } }, Q);
-    assert.equal(near.k.a, 6);
+  /** The range is [3, 7] and the thumb is at 6. */
+  const Q = { k: { c0: 0, c1: 10, z: 4, b: 5, a: 6, locked: false } };
+
+  test('moves the thumb by the same amount', () => {
+    const Y = U.liftSolve(solve, { k: { b: (x: number) => x + 0.5 } }, Q);
+    assert.deepEqual([Y.k.z, Y.k.b, Y.k.a], [4, 5.5, 6.5]);
+  });
+  test('moves the thumb by the amount the range really moves when an end of the track stops it', () => {
     const far = U.liftSolve(solve, { k: { b: (x: number) => x + 4 } }, Q);
-    assert.deepEqual([far.k.b, far.k.a], [8, 6]);
+    assert.deepEqual([far.k.b, far.k.a], [8, 9]);
     const back = U.liftSolve(solve, { k: { b: (x: number) => x - 4 } }, Q);
-    assert.deepEqual([back.k.b, back.k.a], [2, 4]);
+    assert.deepEqual([back.k.b, back.k.a], [2, 3]);
+  });
+  test('leaves a thumb that the caller moves in the same change where the caller puts it', () => {
+    const Y = U.liftSolve(solve, { k: { b: (x: number) => x + 0.5, a: () => 4 } }, Q);
+    assert.deepEqual([Y.k.b, Y.k.a], [5.5, 4]);
   });
 });
