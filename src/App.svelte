@@ -346,7 +346,7 @@
         <li class="macro slider-grid">
           <div class="param-name">Local macro</div>
           <div>min</div>
-          <div class="track" bind:clientWidth={track_w}>
+          <div class="track local" bind:clientWidth={track_w}>
             <div
               data-store="1"
               data-path="h a"

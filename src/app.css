@@ -420,8 +420,13 @@ canvas {
   box-sizing: border-box;
 }
 
-.range {
+/* The local macro slider moves every value inside its range, so its track has the colour of the ranges. */
+.range,
+.track.local {
   background: rgb(153, 153, 234);
+}
+
+.range {
   color: hsl(240, 66%, 76%);
   border-left: 1px solid  hsl(240, 45%, 60%);
   border-right: 1px solid  hsl(240, 45%, 60%);
