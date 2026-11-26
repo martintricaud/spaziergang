@@ -66,3 +66,9 @@ pnpm build    # production build, written to docs/ for GitHub Pages
 ```
 
 The Hilbert-curve transforms are implemented in `src/lib/hilbert.ts` on native BigInt, and pinned by `test/hilbert.test.ts`.
+
+## Dependencies
+
+This project is built on top of the following libraries and frameworks
+- Ramda
+- Svelte
