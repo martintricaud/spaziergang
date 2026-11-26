@@ -481,12 +481,12 @@ filter: contrast(50%) brightness(80%) sepia(100%) saturate(150%) hue-rotate(300d
 }
 
 
+/* The instruments are stacked in one column, and every entry is as wide as the widest. */
 .palette {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   position: fixed;
-  height: 100vh;
-  column-gap: 1rem;
+  row-gap: 0.25rem;
   z-index: 100;
 }
 
